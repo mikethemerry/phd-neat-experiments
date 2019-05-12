@@ -55,3 +55,14 @@ Project Organization
 --------
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+
+----
+
+## Installation
+
+```
+conda env create --file phd-neat-experiments.yml && \
+    source activate phd-neat-experiments
+
+python ./../pyneat/setup.py develop
+```
