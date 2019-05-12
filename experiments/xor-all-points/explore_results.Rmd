@@ -1,0 +1,122 @@
+---
+title: "Explore NEAT results"
+author: "MIKE MERRY"
+date: "4/28/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+
+results <- read.csv('./../results/results-xor-basic.csv')
+results_simple_first <- read.csv('./../results/results-xor-400pts.csv')
+```
+
+```{r}
+results %>%
+  glimpse
+```
+
+```{r}
+results %>%
+  ggplot(aes(X0, X1, color = X2)) +
+  geom_point()
+```
+
+```{r}
+results_simple_first %>% 
+  ggplot(aes(X0, X1, color = X2)) +
+  geom_point()
+```
+
+```{r}
+read.csv('./../xor/results.csv') %>%
+  ggplot(aes(X0, X1, color = X2)) +
+  geom_point()
+```
+
+```{r}
+for (run in 0:9){
+  print(read.csv(paste('./../xor-basic-multiruns/results-run-', run, '.csv', sep='')) %>%
+    ggplot(aes(X0, X1, color = X2)) +
+    geom_point())
+    
+}
+```
+
+```{r}
+
+print(read.csv(paste('./../xor-retrain/results-run-', 0, '.csv', sep='')) %>%
+    ggplot(aes(X0, X1, color = X2)) +
+    geom_point())
+```
+
+```{r}
+
+print(read.csv(paste('./../xor-retrain/results-run-', 1, '.csv', sep='')) %>%
+    ggplot(aes(X0, X1, color = X2)) +
+    geom_point())
+```
+```{r}
+
+for (run in 0:9){
+  print(read.csv(paste('./../xor-retrain/results-run-', run, '.csv', sep='')) %>%
+    ggplot(aes(X0, X1, color = X2)) +
+    geom_point())
+    
+}
+```
+
+```{r}
+f <- function(x) x^3
+for (run in 0:9){
+  print(read.csv(paste('./../polynomial_x3/results-run-', run, '.csv', sep='')) %>%
+    ggplot(aes(X0, X1, color = X2)) +
+    geom_point() + 
+    stat_function(fun=f, colour="red"))
+    
+}
+```
+
+```{r}
+circleFun <- function(center = c(0,0),diameter = 1, npoints = 100){
+    r = diameter / 2
+    tt <- seq(0,2*pi,length.out = npoints)
+    xx <- center[1] + r * cos(tt)
+    yy <- center[2] + r * sin(tt)
+    return(data.frame(x = xx, y = yy))
+}
+circleDat <- circleFun(diameter=0.8*2)
+for (run in 0:9){
+  df <- read.csv(paste('./../circle/results-run-', run, '.csv', sep=''))
+  print(
+    ggplot(aes(X0, X1, color = X2), data=df) +
+    geom_point()  +
+    geom_path(aes(x, y, color=0), data=circleDat) )
+    
+}
+```
+
+```{r}
+
+for (run in 0:9){
+  print(read.csv(paste('./../xor-400pts/results-run-', run, '.csv', sep='')) %>%
+    ggplot(aes(X0, X1, color = X2)) +
+    geom_point() )
+    
+}
+```
+```{r}
+read.csv('./../../results_graddesc.csv') %>%
+    ggplot(aes(X0, X1, color = X2)) +
+    geom_point()
+```
+
+```{r}
+read.csv('./../../results_graddesc_2.csv') %>%
+    ggplot(aes(X0, X1, color = X2)) +
+    geom_point()
+```
