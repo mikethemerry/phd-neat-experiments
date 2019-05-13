@@ -64,7 +64,7 @@ class NeatNet():
             self.connections_by_output[k[1]][k] = c
         self.order_of_nodes = self.get_order_of_nodes()
 
-        self.optimizer = optim.Adadelta(self.params) 
+        self.optimizer = optim.Adadelta(self.params, lr=1.5)
         self.criterion = nn.BCELoss()
 
 
@@ -143,7 +143,7 @@ class NeatNet():
         if not type(ys) is torch.Tensor:
             ys = torch.tensor(ys)
 
-        print('going to train for %s epochs' % nEpochs)
+        # print('going to train for %s epochs' % nEpochs)
         for epoch in range(nEpochs):
             for inX in range(len(xs)):
                 self.optimizer.zero_grad()   # zero the gradient buffers

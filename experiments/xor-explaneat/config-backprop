@@ -2,12 +2,10 @@
 
 [NEAT]
 fitness_criterion     = max
-fitness_threshold     = 3.9
-pop_size              = 50
+fitness_threshold     = 3.8
+pop_size              = 30
 reset_on_extinction   = False
 
-[Backprop]
-generations_of_backprop = 300
 
 [DefaultGenome]
 # node activation options
@@ -31,7 +29,7 @@ bias_replace_rate       = 0.0
 
 # genome compatibility options
 compatibility_disjoint_coefficient = 1.0
-compatibility_weight_coefficient   = 0.5
+compatibility_weight_coefficient   = 1.5
 
 # connection add/remove rates
 conn_add_prob           = 0.6

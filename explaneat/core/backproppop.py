@@ -66,27 +66,27 @@ class BackpropPopulation(Population):
         postLosses = []
         improvements = []
         for k, genome in self.population.items():
-            print(k, genome)
+            # print(k, genome)
             net = NeatNet(genome, self.config)
             
             preBPLoss = net.meanLoss(xs, ys)
-            print('meanLoss pre backprop: %s' % preBPLoss)
+            # print('meanLoss pre backprop: %s' % preBPLoss)
             
             net.optimise(xs, ys, nEpochs)
             
             postBPLoss = net.meanLoss(xs, ys)
             postLosses.append(postBPLoss)
-            print('meanLoss post backprop: %s' % postBPLoss)
+            # print('meanLoss post backprop: %s' % postBPLoss)
             
             lossDiff = postBPLoss - preBPLoss
 
             losses.append((preBPLoss, postBPLoss, lossDiff))
             improvements.append(lossDiff)
             net.updateGenomeWeights(genome)
-            print('finished backprop')
-            print('mean improvement: %s' % mean(improvements))
-            print('best improvement: %s' % min(improvements))
-            print('best loss: %s' % min(postLosses))
+            # print('finished backprop on genome %s' % k)
+        print('mean improvement: %s' % mean(improvements))
+        print('best improvement: %s' % min(improvements))
+        print('best loss: %s' % min(postLosses))
             
     #     for inX in range(4):
     #         optimizer.zero_grad()   # zero the gradient buffers
@@ -120,7 +120,7 @@ class BackpropPopulation(Population):
             self.reporters.start_generation(self.generation)
 
             # self.backprop(self.population, self.config, self.xs, self.ys)
-            self.backpropagate(self.xs, self.ys, nEpochs=100)
+            self.backpropagate(self.xs, self.ys, nEpochs=50)
             # Evaluate all genomes using the user-provided function.
             fitness_function(list(iteritems(self.population)), self.config)
 
