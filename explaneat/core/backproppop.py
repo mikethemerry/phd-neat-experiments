@@ -120,7 +120,7 @@ class BackpropPopulation(Population):
             self.reporters.start_generation(self.generation)
 
             # self.backprop(self.population, self.config, self.xs, self.ys)
-            self.backpropagate(self.xs, self.ys, nEpochs=50)
+            self.backpropagate(self.xs, self.ys, nEpochs=100)
             # Evaluate all genomes using the user-provided function.
             fitness_function(list(iteritems(self.population)), self.config)
 
