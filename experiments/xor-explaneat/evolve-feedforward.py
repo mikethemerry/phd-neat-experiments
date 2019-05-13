@@ -12,6 +12,9 @@ import numpy as np
 import random
 
 import torch
+import torch.nn as nn
+import torch.optim as optim
+
 
 from explaneat.core.backprop import NeatNet
 
@@ -70,8 +73,15 @@ def run(config_file, runNumber):
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
                          config_file)
 
+
+    xs = create_n_points(400, 2)
+
+    ys = [
+        tuple( [xor(tup[0], tup[1])] ) for tup in xor_inputs_2
+    ]
+
     # Create the population, which is the top-level object for a NEAT run.
-    p = neat.Population(config)
+    p = neat.Population(config, xs, ys)
 
     # Add a stdout reporter to show progress in the terminal.
     p.add_reporter(neat.StdOutReporter(True))
@@ -128,6 +138,11 @@ if __name__ == '__main__':
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
                          config_path)
 
-    nn = NeatNet(config, g) 
+    net = NeatNet(config, g) 
 
     winnerNet = neat.nn.FeedForwardNetwork.create(g, config)
+
+    optimizer = optim.Adadelta(net.params) 
+    criterion = nn.BCELoss()
+    inputs = torch.tensor(xor_inputs_2)
+    outputs = torch.tensor(xor_outputs_2)

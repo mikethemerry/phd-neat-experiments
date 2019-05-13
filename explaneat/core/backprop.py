@@ -14,6 +14,7 @@ import copy
 def tt(num):
     return nn.Parameter(torch.tensor([float(num)], requires_grad=True))
 
+
 def neatSigmoid(num):
     return torch.sigmoid(4.9*num)
 
@@ -26,6 +27,16 @@ class NeatNet():
         self.connections = {
             k: tt(connection.weight) for k, connection in genome.connections.items()
         }
+
+        self.biases = {
+            k: tt(node.bias) for k, node in genome.nodes.items()
+        }
+
+        self.params = []
+        for k, v in self.connections.items():
+            self.params.append(v)
+        for k, v in self.biases.items():
+            self.params.append(v)
 
         self.input_keys = self.config.genome_config.input_keys
         self.output_keys = self.config.genome_config.output_keys
@@ -52,6 +63,11 @@ class NeatNet():
                 self.connections_by_output[k[1]] = {}
             self.connections_by_output[k[1]][k] = c
         self.order_of_nodes = self.get_order_of_nodes()
+
+        self.optimizer = optim.Adadelta(self.params) 
+        self.criterion = nn.BCELoss()
+
+
 
 
     def get_order_of_nodes(self):
@@ -111,8 +127,32 @@ class NeatNet():
 
         return self.nodeVals[self.output_keys[0]]
 
+    def optimise(self, xs, ys, nEpochs = 100):
+        xs = torch.tensor(xs)
+        ys = torch.tensor(ys)
+        for epoch in range(nEpochs):
+            for inX in range(len(xs)):
+                self.optimizer.zero_grad()   # zero the gradient buffers
 
-class Net(nn.Module):
+                output = self.forward(xs[inX])
+                target = ys[inX]
+                loss = self.criterion(output, target)
+                loss.backward()
+                self.optimizer.step()
+
+    def updateGenomeWeights(self, genome):
+        """takes in GenomeClass object and replaces the genome weights in place
+        """
+        for k in genome.connections:
+            genome.connections[k].weight = float(self.connections[k][0])
+        for k in genome.nodes:
+            genome.nodes[k].bias = float(self.biases[k][0])
+        
+
+
+
+
+class Net(torch.nn.Module):
 
     def __init__(self):
         super(Net, self).__init__()
@@ -195,12 +235,12 @@ def overUnder(val, threshold):
 
 
 
-# for gen in range(5000):
-    
+# for gen in range(100):
+
 #     for inX in range(4):
 #         optimizer.zero_grad()   # zero the gradient buffers
 
-#         output = net(inputs[inX])
+#         output = net.forward(inputs[inX])
 #         target = outputs[inX]
 #         loss = criterion(output, target)
 #         loss.backward()
@@ -209,13 +249,13 @@ def overUnder(val, threshold):
 #         print(gen)
 #         for inX in range(30):
 
-#             output = net(inputs[inX])
+#             output = net.forward(inputs[inX])
 #             target = outputs[inX]
 
 #             print(output, target)
 # for inX in range(len(inputs)):
 #     input = inputs[inX]
-#     output = net(input)
+#     output = net.forward(input)
 #     target = outputs[inX]
 
 #     print(input, output, target)
