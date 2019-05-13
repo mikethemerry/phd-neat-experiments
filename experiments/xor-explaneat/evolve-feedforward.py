@@ -11,8 +11,11 @@ import pandas as pd
 import numpy as np
 import random
 
+import torch
+
 from explaneat.core.backprop import NeatNet
 
+random.seed(42)
 
 def xor(a, b):
     response = False
@@ -126,3 +129,5 @@ if __name__ == '__main__':
                          config_path)
 
     nn = NeatNet(config, g) 
+
+    winnerNet = neat.nn.FeedForwardNetwork.create(g, config)

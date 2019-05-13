@@ -12,8 +12,7 @@ import copy
 
 
 def tt(num):
-    return nn.Parameter(torch.randn(1, requires_grad=True))
-    # return nn.Parameter(torch.tensor([float(num)], requires_grad=True))
+    return nn.Parameter(torch.tensor([float(num)], requires_grad=True))
 
 def neatSigmoid(num):
     return torch.sigmoid(4.9*num)
@@ -66,7 +65,10 @@ class NeatNet():
             
             node = nodes_to_propagate.pop(0)
             order_of_nodes.append(node)
-            
+            # handle nodes with no output
+            if node not in self.connections_by_input:
+                order_of_nodes.append(node)
+                continue
             for connection in self.connections_by_input[node]:
                 
 
@@ -79,12 +81,35 @@ class NeatNet():
                         order_of_nodes.append(connection[1])
         return order_of_nodes
 
-        
+    def create_parameters(self):
+        assert self.order_of_nodes is not None
+
+    def activateNode(self, node):
+        vals = [
+            self.nodeVals[connection[0]] * self.connections[connection] for connection in self.connections_by_output[node]
+        ]
+
+        vals.append(self.genome.nodes[node].bias)
+        mySum = sum(vals)
+        return torch.sigmoid(5.0*mySum)
 
     def forward(self, inputs):
         next_steps = []
 
-        return output
+                # h1 = torch.sigmoid(4.9*(x1*self.g1 + x2*self.g2 + self.b1))
+        
+        self.nodeVals = {}
+        for k, inputVal in enumerate(inputs):
+            self.nodeVals[self.input_keys[k]] = inputVal
+        
+        for node in self.order_of_nodes:
+            # pass over input nodes
+            if node in self.nodeVals:
+                continue
+            self.nodeVals[node] = self.activateNode(node)
+
+
+        return self.nodeVals[self.output_keys[0]]
 
 
 class Net(nn.Module):
