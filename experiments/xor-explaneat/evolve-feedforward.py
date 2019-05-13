@@ -17,6 +17,7 @@ import torch.optim as optim
 
 
 from explaneat.core.backprop import NeatNet
+from explaneat.core.backproppop import BackpropPopulation
 
 random.seed(42)
 
@@ -74,14 +75,16 @@ def run(config_file, runNumber):
                          config_file)
 
 
-    xs = create_n_points(400, 2)
+    # xs = create_n_points(400, 2)
 
-    ys = [
-        tuple( [xor(tup[0], tup[1])] ) for tup in xor_inputs_2
-    ]
+    # ys = [
+    #     tuple( [xor(tup[0], tup[1])] ) for tup in xor_inputs_2
+    # ]
+    xs = [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)]
+    ys = [   (0.0,),     (1.0,),     (1.0,),     (0.0,)]
 
     # Create the population, which is the top-level object for a NEAT run.
-    p = neat.Population(config, xs, ys)
+    p = BackpropPopulation(config, xs, ys)
 
     # Add a stdout reporter to show progress in the terminal.
     p.add_reporter(neat.StdOutReporter(True))
@@ -129,7 +132,8 @@ if __name__ == '__main__':
     # here so that the script will run successfully regardless of the
     # current working directory.
     local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, 'config-feedforward')
+    # config_path = os.path.join(local_dir, 'config-feedforward')
+    config_path = os.path.join(local_dir, 'config-backprop')
     p = run(config_path, 0)
 
     g = p.best_genome
@@ -138,7 +142,7 @@ if __name__ == '__main__':
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
                          config_path)
 
-    net = NeatNet(config, g) 
+    net = NeatNet(g, config) 
 
     winnerNet = neat.nn.FeedForwardNetwork.create(g, config)
 

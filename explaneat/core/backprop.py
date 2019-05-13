@@ -19,7 +19,7 @@ def neatSigmoid(num):
     return torch.sigmoid(4.9*num)
 
 class NeatNet():
-    def __init__(self, config, genome):
+    def __init__(self, genome, config):
         # super(NeatNet, self).__init__()
         self._modules = []
         self.config = config
@@ -95,6 +95,9 @@ class NeatNet():
                         nodes_to_propagate.append(connection[1])
                     else:
                         order_of_nodes.append(connection[1])
+        for outputNode in self.config.genome_config.output_keys:
+            if outputNode not in order_of_nodes:
+                order_of_nodes.append(outputNode)
         return order_of_nodes
 
     def create_parameters(self):
@@ -102,10 +105,16 @@ class NeatNet():
 
     def activateNode(self, node):
         vals = [
-            self.nodeVals[connection[0]] * self.connections[connection] for connection in self.connections_by_output[node]
         ]
+        # handler for if the output is not connected
+        if node in self.connections_by_output:
+            for connection in self.connections_by_output[node]:
+                # Handler for if there is a node not prior connected to the
+                # inputs
+                if connection[0] in self.order_of_nodes:
+                    vals.append(self.nodeVals[connection[0]] * self.connections[connection])
 
-        vals.append(self.genome.nodes[node].bias)
+        vals.append(torch.tensor(self.genome.nodes[node].bias, requires_grad=True))
         mySum = sum(vals)
         return torch.sigmoid(5.0*mySum)
 
@@ -127,9 +136,14 @@ class NeatNet():
 
         return self.nodeVals[self.output_keys[0]]
 
+
     def optimise(self, xs, ys, nEpochs = 100):
-        xs = torch.tensor(xs)
-        ys = torch.tensor(ys)
+        if not type(xs) is torch.Tensor:
+            xs = torch.tensor(xs)
+        if not type(ys) is torch.Tensor:
+            ys = torch.tensor(ys)
+
+        print('going to train for %s epochs' % nEpochs)
         for epoch in range(nEpochs):
             for inX in range(len(xs)):
                 self.optimizer.zero_grad()   # zero the gradient buffers
@@ -139,6 +153,20 @@ class NeatNet():
                 loss = self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
+    optimize = optimise
+
+    def meanLoss(self, xs, ys):
+        if not type(xs) is torch.Tensor:
+            xs = torch.tensor(xs)
+        if not type(ys) is torch.Tensor:
+            ys = torch.tensor(ys)
+        losses = []
+        for inX in range(len(xs)):
+
+            output = self.forward(xs[inX])
+            target = ys[inX]
+            losses.append(self.criterion(output, target))
+        return sum(losses)/len(losses)
 
     def updateGenomeWeights(self, genome):
         """takes in GenomeClass object and replaces the genome weights in place
