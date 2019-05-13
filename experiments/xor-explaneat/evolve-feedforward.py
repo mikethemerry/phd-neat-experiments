@@ -19,7 +19,7 @@ import torch.optim as optim
 from explaneat.core.backprop import NeatNet
 from explaneat.core.backproppop import BackpropPopulation
 
-random.seed(42)
+random.seed(4242)
 
 def xor(a, b):
     response = False

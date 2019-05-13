@@ -112,7 +112,8 @@ class NeatNet():
                 # Handler for if there is a node not prior connected to the
                 # inputs
                 if connection[0] in self.order_of_nodes:
-                    vals.append(self.nodeVals[connection[0]] * self.connections[connection])
+                    if self.genome.connections[connection].enabled:
+                        vals.append(self.nodeVals[connection[0]] * self.connections[connection])
 
         vals.append(torch.tensor(self.genome.nodes[node].bias, requires_grad=True))
         mySum = sum(vals)
