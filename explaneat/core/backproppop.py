@@ -14,6 +14,8 @@ from explaneat.core.backprop import NeatNet
 
 from neat.population import Population
 
+from neat.reporting import BaseReporter
+
 class BackpropPopulation(Population):
     """
     This class extends the core NEAT implementation with a backprop method
@@ -145,6 +147,8 @@ class BackpropPopulation(Population):
             # Create the next generation from the current generation.
             self.population = self.reproduction.reproduce(self.config, self.species,
                                                           self.config.pop_size, self.generation)
+            # self.reporters.post_reproduction(self.config, self.population, self.species)
+
 
             # Check for complete extinction.
             if not self.species.species:
@@ -170,3 +174,5 @@ class BackpropPopulation(Population):
             self.reporters.found_solution(self.config, self.generation, self.best_genome)
 
         return self.best_genome
+
+

@@ -17,6 +17,7 @@ import torch.optim as optim
 
 
 from explaneat.core.backprop import NeatNet
+from explaneat.core import backprop
 from explaneat.core.backproppop import BackpropPopulation
 
 random.seed(4242)
@@ -91,9 +92,13 @@ def run(config_file, runNumber):
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
     p.add_reporter(neat.Checkpointer(5))
+    bpReporter = backprop.BackpropReporter(True)
+    p.add_reporter(bpReporter)
 
     # Run for up to 300 generations.
     winner = p.run(eval_genomes, 300)
+    # winner = p.run(eval_genomes, 3)
+    # winner = p.run(eval_genomes, 10)
 
     p.reporters.reporters[2].save_checkpoint(p.config, p.population, p.species, str(p.generation) + "-final")  
     

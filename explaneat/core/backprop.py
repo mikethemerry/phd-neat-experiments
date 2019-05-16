@@ -180,6 +180,117 @@ class NeatNet():
 
 
 
+class BackpropReporter(object):
+    """Definition of the reporter interface expected by ReporterSet."""
+
+    def __init__(self, showSpeciesImprovements):
+        self.bestFitnesses = []
+        self.firstDerivatives = []
+        self.secondDerivatives = []
+        self.generation = None
+        self.improvedTopologies = {}
+        self.showSpeciesImprovements = showSpeciesImprovements
+        self.ancestry = {}
+        self.ancestors = {}
+
+    def start_generation(self, generation):
+        self.generation = generation
+
+
+    def post_reproduction(self, config, population, species_set):
+        pass
+
+    def post_evaluate(self, config, population, species, best_genome):
+        self.bestFitnesses.append(best_genome.fitness)
+        try:
+            self.firstDerivatives.append(self.bestFitnesses[self.generation] - self.bestFitnesses[self.generation - 1])
+        except IndexError:
+            self.firstDerivatives.append(self.bestFitnesses[self.generation])
+        try:
+            self.secondDerivatives.append(self.firstDerivatives[self.generation] - self.firstDerivatives[self.generation - 1])
+        except IndexError:
+            self.secondDerivatives.append(self.firstDerivatives[self.generation])
+        if self.secondDerivatives[self.generation] > 0.001:
+            self.improvedTopologies[self.generation] = {
+                'genome': copy.deepcopy(best_genome),
+                'fitness': best_genome.fitness,
+                'firstDerivatives': copy.deepcopy(self.firstDerivatives),
+                'secondDerivatives': copy.deepcopy(self.secondDerivatives)}
+            if self.showSpeciesImprovements:
+                print("\n\n SPECIES TOPOLOGY IMPROVEMENT\n\n")
+                print(self.improvedTopologies[self.generation])
+                print(self.improvedTopologies[self.generation]['genome'])
+                print("Nodes")
+                for n in self.improvedTopologies[self.generation]['genome'].nodes:
+                    print("%s    %s" % (n, self.improvedTopologies[self.generation]['genome'].nodes[n] ))
+                print("Connections")
+                for c in self.improvedTopologies[self.generation]['genome'].connections:
+                    print("%s    %s" % (c, self.improvedTopologies[self.generation]['genome'].connections[c] ))
+
+
+    def end_generation(self, config, population, species):
+
+        for p in population:
+            if not p in self.ancestry:
+                self.ancestry[p] = {
+                    'key': p,
+                    'genome': copy.deepcopy(population[p]),
+                    'generationBorn': self.generation,
+                    'species': {},
+                    'fitness': {}
+                }
+            self.ancestry[p]['fitness'][self.generation] = population[p].fitness
+        for s in species.species:
+            for p in species.species[s].members:
+                self.ancestry[p]['species'][self.generation] = s
+
+
+    def complete_extinction(self):
+        pass
+
+    def found_solution(self, config, generation, best):
+        
+        pass
+
+    def species_stagnant(self, sid, species):
+        pass
+
+    def info(self, msg):
+        
+        pass
+
+    def trace_ancestry_of_species(self, species_key, ancestors):
+        final_generation = self.generation - 1
+        
+        gen = final_generation
+        previous_generation = [
+            species_key
+        ]
+        current_generation = []
+
+        species_ancestry = {}
+            
+        while gen >= 0:
+            # print('gen is %s' % gen)
+            for sKey in previous_generation:
+                # print('skey is %s' % sKey)
+                if self.ancestry[sKey]['generationBorn'] < gen:
+                    # Still was born
+                    current_generation.append(sKey)
+                else:
+                    # Get parents
+                    for parentKey in ancestors[sKey]:
+                        current_generation.append(parentKey)
+
+            # print(current_generation)
+            species_ancestry[gen] = {
+                k: self.ancestry[k]['fitness'][gen] for k in current_generation
+            }
+
+            previous_generation = current_generation
+            current_generation = []
+            gen += -1
+        return species_ancestry
 
 class Net(torch.nn.Module):
 
