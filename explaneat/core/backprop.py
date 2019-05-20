@@ -228,7 +228,8 @@ class BackpropReporter(object):
                     print("%s    %s" % (c, self.improvedTopologies[self.generation]['genome'].connections[c] ))
 
 
-    def end_generation(self, config, population, species):
+    # def end_generation(self, config, population, species):
+        print('ending generation %s'.format(self.generation))
 
         for p in population:
             if not p in self.ancestry:
@@ -240,10 +241,14 @@ class BackpropReporter(object):
                     'fitness': {}
                 }
             self.ancestry[p]['fitness'][self.generation] = population[p].fitness
+            if population[p].fitness is None:
+                print('no fitness for organism %s in generation %s' % (p, self.generation))
+                print(population[p])
         for s in species.species:
             for p in species.species[s].members:
                 self.ancestry[p]['species'][self.generation] = s
-
+    def end_generation(self, config, population, species):
+        pass
 
     def complete_extinction(self):
         pass
@@ -260,7 +265,7 @@ class BackpropReporter(object):
         pass
 
     def trace_ancestry_of_species(self, species_key, ancestors):
-        final_generation = self.generation - 1
+        final_generation = self.generation
         
         gen = final_generation
         previous_generation = [
@@ -271,25 +276,38 @@ class BackpropReporter(object):
         species_ancestry = {}
             
         while gen >= 0:
-            # print('gen is %s' % gen)
+            print('gen is %s' % gen)
+            print('previous generation is %s' % previous_generation)
             for sKey in previous_generation:
-                # print('skey is %s' % sKey)
+                print('skey is %s' % sKey)
                 if self.ancestry[sKey]['generationBorn'] < gen:
                     # Still was born
                     current_generation.append(sKey)
+                elif self.ancestry[sKey]['generationBorn'] == gen:
+                    current_generation.append(sKey)
+                    for parentKey in ancestors[sKey]:
+                        current_generation.append(parentKey)
                 else:
                     # Get parents
                     for parentKey in ancestors[sKey]:
                         current_generation.append(parentKey)
-
+            current_generation = list(set(current_generation))
             # print(current_generation)
-            species_ancestry[gen] = {
-                k: self.ancestry[k]['fitness'][gen] for k in current_generation
-            }
+            species_ancestry[gen] = {}
+            for k in current_generation:
+                try:
+                    species_ancestry[gen][k] = self.ancestry[k]['fitness'][gen]
+                except KeyError:
+                    print('issue with k is %s and gen of %s' % (k, gen))
+                    # pass
+            # species_ancestry[gen] = {
+                # k: self.ancestry[k]['fitness'][gen] for k in current_generation
+            # }
 
             previous_generation = current_generation
             current_generation = []
             gen += -1
+        print('have calculated the ancestry')
         return species_ancestry
 
 class Net(torch.nn.Module):

@@ -11,6 +11,11 @@ import graphviz
 import matplotlib.pyplot as plt
 import numpy as np
 
+import neat
+
+import os, sys
+
+import cv2
 
 def plot_stats(statistics, ylog=False, view=False, filename='avg_fitness.svg'):
     """ Plots the population's average and best fitness. """
@@ -23,10 +28,10 @@ def plot_stats(statistics, ylog=False, view=False, filename='avg_fitness.svg'):
     avg_fitness = np.array(statistics.get_fitness_mean())
     stdev_fitness = np.array(statistics.get_fitness_stdev())
 
+    plt.plot(generation, best_fitness, 'r-', label="best")
+    plt.plot(generation, avg_fitness + stdev_fitness, 'g-.', label="+1 sd")
     plt.plot(generation, avg_fitness, 'b-', label="average")
     plt.plot(generation, avg_fitness - stdev_fitness, 'g-.', label="-1 sd")
-    plt.plot(generation, avg_fitness + stdev_fitness, 'g-.', label="+1 sd")
-    plt.plot(generation, best_fitness, 'r-', label="best")
 
     plt.title("Population's average and best fitness")
     plt.xlabel("Generations")
@@ -91,6 +96,37 @@ def plot_spikes(spikes, view=False, filename=None, title=None):
 
     return fig
 
+def plot_stats_for_ancestry(statistics, genome_fitness, ylog=False, view=False, filename=None):
+    """ Plots the population's average and best fitness. """
+    if plt is None:
+        warnings.warn("This display is not available due to a missing optional dependency (matplotlib)")
+        return
+
+    generation = range(len(statistics.most_fit_genomes))
+    # best_fitness = [c.fitness for c in statistics.most_fit_genomes]
+    avg_fitness = np.array(statistics.get_fitness_mean())
+    stdev_fitness = np.array(statistics.get_fitness_stdev())
+
+    plt.figure(figsize=(8,6))
+    plt.plot(generation, genome_fitness, 'r-', label="Ancestry")
+    plt.plot(generation, avg_fitness + stdev_fitness, 'g-.', label="+1 sd")
+    plt.plot(generation, avg_fitness, 'b-', label="average")
+    plt.plot(generation, avg_fitness - stdev_fitness, 'g-.', label="-1 sd")
+    
+
+    plt.title("Population's average and best fitness")
+    plt.xlabel("Generations")
+    plt.ylabel("Fitness")
+    plt.grid()
+    plt.legend(loc="best")
+    if ylog:
+        plt.gca().set_yscale('symlog')
+    
+    plt.savefig(filename, dpi=100)
+    if view:
+        plt.show()
+
+    plt.close()
 
 def plot_species(statistics, view=False, filename='speciation.svg'):
     """ Visualizes speciation throughout evolution. """
@@ -141,7 +177,8 @@ def draw_net(config, genome, view=False, filename=None, node_names=None, show_di
         'height': '0.2',
         'width': '0.2'}
 
-    dot = graphviz.Digraph(format=fmt, node_attr=node_attrs)
+    dot = graphviz.Digraph(format=fmt, node_attr=node_attrs, graph_attr={'size':"7.75,10.25", 'dpi':'800'})
+    
 
     inputs = set()
     for k in config.genome_config.input_keys:
@@ -199,3 +236,169 @@ def draw_net(config, genome, view=False, filename=None, node_names=None, show_di
     dot.render(filename, view=view)
 
     return dot
+
+def resize_to_max(im, maxHeight, maxWidth):
+    from cv2 import resize, INTER_CUBIC
+
+    targetRatio = maxHeight/maxWidth
+    currentRatio = im.shape[0]/im.shape[1]
+    if currentRatio > targetRatio:
+        #fit height
+        scaleFactor = maxHeight/im.shape[0]
+    else:
+        #fit width
+        scaleFactor = maxWidth/im.shape[1]
+    newDims = (int(im.shape[0]*scaleFactor), int(im.shape[1]*scaleFactor))
+    resized = resize(im, newDims, interpolation=INTER_CUBIC)
+    return resized
+
+def plot_net_decisions_2d(net, view=False, filename=None):
+    xx, yy = np.meshgrid(
+        np.linspace(0, 1, 101),
+        np.linspace(0, 1, 101)
+    )
+
+    zz = np.zeros(xx.shape)
+    for ii in range(xx.shape[0]):
+        for jj in range(xx.shape[1]):
+            zz[ii, jj] = net.activate((xx[ii,jj], yy[ii, jj]))[0]
+
+    plt.figure(figsize=(8,6))
+
+    plt.scatter(xx, yy, c=zz)
+
+    if view:
+        plt.show()
+    plt.savefig(filename, dpi=100)
+    plt.close()
+
+
+    
+
+def create_ancestry_video(config, genome, ancestry, ancestors, statistics, pathname = None, 
+                videoFilename=None, ):
+    ### create the ancestor graphs for the generations
+    # Make filename `ancestor00001.png`
+
+    if not os.path.exists('tmp'):
+        os.makedirs('tmp')
+
+
+    max_generation = max(ancestry)
+    fitnessTemplateString = 'tmp/fitness{:0>10}.png'
+    decisionBoundaryString = 'tmp/decision{:0>10}.png'
+    ancestryFitness = [None for _ in range(max_generation + 1)]
+    fitnessImageFiles = []
+    decisionImageFiles = []
+    for generation in range(max_generation + 1):
+        print('Fitness for gen %s' % generation)
+        bestFitness = 0
+        bestGenome = None
+        for genome, fitness in ancestry[generation].items():
+            if fitness is None:
+                continue
+            if fitness > bestFitness:
+                bestGenome = genome
+                bestFitness = fitness
+
+        ancestryFitness[generation] = bestFitness
+        fitnessPlotString = fitnessTemplateString.format(generation)
+        fitnessImageFiles.append(fitnessPlotString)
+        plot_stats_for_ancestry(statistics, ancestryFitness, filename=fitnessPlotString)
+
+        bestNet = neat.nn.FeedForwardNetwork.create(ancestors[bestGenome], config)
+
+        decisionFileString = decisionBoundaryString.format(generation)
+        plot_net_decisions_2d(bestNet, filename=decisionFileString)
+        decisionImageFiles.append(decisionFileString)
+
+
+
+
+    templateString = 'tmp/ancestor{:0>10}'
+    netImageFiles = []
+    for generation, genomes in ancestry.items():
+        bestGenomeKey = None
+        bestFitness = 0
+        print(generation)
+        print(genomes)
+        for genome, fitness in genomes.items():
+            if fitness is None:
+                bestGenomeKey = genome
+                bestFitness = 99999999
+                continue
+            if fitness > bestFitness:
+                bestGenomeKey = genome
+                bestFitness = fitness
+        if bestGenomeKey is None:
+            continue
+        bestGenome = ancestors[bestGenomeKey]
+
+        fileStr = templateString.format(generation)
+        draw_net(config, bestGenome, filename=fileStr, fmt='png')
+        netImageFiles.append('%s.png'%fileStr)
+
+
+
+
+
+    print(netImageFiles)
+    print(fitnessImageFiles)
+    netImageFiles.sort()
+    ## Stitch frames
+    from cv2 import VideoWriter, imread, resize
+    import cv2
+    height, width, layers = 1200, 1600, 3
+    halfHeight = int(height/2)
+    halfWidth = int(width/2)
+    if os.path.exists('netVideo.avi'):
+        os.remove('netVideo.avi')
+    video = cv2.VideoWriter('netVideo.avi',-1,2,(width,height))
+    
+    for generation in range(0, max_generation + 1):
+        imFile = '%s.png'%(templateString.format(generation))
+        print(imFile)
+        net = imread(imFile)
+
+        fitnessFile = fitnessTemplateString.format(generation)
+        print(fitnessFile)
+        fitness = imread(fitnessFile)
+        
+        decisionFile = decisionBoundaryString.format(generation)
+        print(decisionFile)
+        decision = imread(decisionFile)
+
+        frame = np.zeros((height,width,layers), np.uint8)
+        frame.fill(255)
+        netResized  = resize(net, (halfWidth, halfHeight))
+        fitnessResized = resize(fitness, (halfWidth, halfHeight))
+        decisionResized = resize(decision, (halfWidth, halfHeight))
+        # fitnessResized = fitness
+        frame[0:halfHeight, 0:halfWidth] = fitnessResized
+        frame[halfHeight:height, 0:halfWidth] = netResized
+        frame[0:halfHeight, halfWidth:width] = decisionResized
+    #     # resized = resize_to_max(im, height, width)
+    #     resized = resize(im, (width, height))
+    #     # frame[0:resized.shape[0], 0:resized.shape[1]] = resized
+
+        video.write(frame)
+
+    # for imFile in netImageFiles:
+    #     im = imread(imFile)
+    #     frame = np.zeros((height,width,layers), np.uint8)
+    #     frame.fill(255)
+    #     # resized = resize_to_max(im, height, width)
+    #     resized = resize(im, (width, height))
+    #     # frame[0:resized.shape[0], 0:resized.shape[1]] = resized
+
+    #     video.write(resized)
+    
+    cv2.destroyAllWindows()
+    video.release()
+
+
+    # if os.path.exists('tmp'):
+        # os.removedirs('tmp')
+
+
+        

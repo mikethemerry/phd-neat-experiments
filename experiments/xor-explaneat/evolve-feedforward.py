@@ -19,8 +19,10 @@ import torch.optim as optim
 from explaneat.core.backprop import NeatNet
 from explaneat.core import backprop
 from explaneat.core.backproppop import BackpropPopulation
+from explaneat.visualization import visualize
 
-random.seed(4242)
+# random.seed(4242)
+random.seed(43)
 
 def xor(a, b):
     response = False
@@ -155,3 +157,14 @@ if __name__ == '__main__':
     criterion = nn.BCELoss()
     inputs = torch.tensor(xor_inputs_2)
     outputs = torch.tensor(xor_outputs_2)
+
+    ancestry = p.reporters.reporters[3].trace_ancestry_of_species(g.key, p.reproduction.ancestors) 
+
+    print('have ancestry')
+
+    ancestors = {
+        k: v['genome'] for k, v in p.reporters.reporters[3].ancestry.items()
+    }
+    print('have ancestors')
+    visualize.create_ancestry_video(p.config, g, ancestry, ancestors, p.reporters.reporters[1])
+    print('have finished video')
