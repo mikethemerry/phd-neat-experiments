@@ -5,7 +5,6 @@
 from __future__ import print_function
 import os
 import neat
-import visualize
 
 import pandas as pd
 import numpy as np
@@ -51,24 +50,26 @@ def softmax(x):
 def overUnder(val, threshold):
     return 1. if val > threshold else 0
 
-xor_inputs_2 = create_n_points(400, 2)
-
-xor_outputs_2 = [
-    tuple( [xor(tup[0], tup[1])] ) for tup in xor_inputs_2
-]
 
 # 2-input XOR inputs and expected outputs.
-xor_inputs = [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)]
-xor_outputs = [   (0.0,),     (1.0,),     (1.0,),     (0.0,)]
+# xor_inputs = [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)]
+# xor_outputs = [   (0.0,),     (1.0,),     (1.0,),     (0.0,)]
 
+
+xs = create_n_points(400, 2)
+
+ys = [
+    tuple( [xor(tup[0], tup[1])] ) for tup in xs
+]
 
 def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
-        genome.fitness = 4.0
+        genome.fitness = 400.0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        for xi, xo in zip(xor_inputs, xor_outputs):
+        for xi, xo in zip(xs, ys):
             output = net.activate(xi)
             genome.fitness -= (output[0] - xo[0]) ** 2
+
 
 
 def run(config_file, runNumber):
@@ -78,13 +79,6 @@ def run(config_file, runNumber):
                          config_file)
 
 
-    # xs = create_n_points(400, 2)
-
-    # ys = [
-    #     tuple( [xor(tup[0], tup[1])] ) for tup in xor_inputs_2
-    # ]
-    xs = [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)]
-    ys = [   (0.0,),     (1.0,),     (1.0,),     (0.0,)]
 
     # Create the population, which is the top-level object for a NEAT run.
     p = BackpropPopulation(config, xs, ys)
@@ -110,12 +104,12 @@ def run(config_file, runNumber):
     # Show output of the most fit genome against training data.
     print('\nOutput:')
     winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
-    for xi, xo in zip(xor_inputs, xor_outputs):
-        output = winner_net.activate(xi)
-        print("input {!r}, expected output {!r}, got {!r}".format(xi, xo, output))
+    # for xi, xo in zip(xor_inputs, xor_outputs):
+    #     output = winner_net.activate(xi)
+    #     print("input {!r}, expected output {!r}, got {!r}".format(xi, xo, output))
 
     results = []
-    for xi, xo in zip(xor_inputs_2, xor_outputs_2):
+    for xi, xo in zip(xs, ys):
         output = winner_net.activate(xi)
         print("input {!r}, expected output {!r}, got {!r}".format(xi, xo, output))
         results.append([xi[0], xi[1], output[0]])
@@ -125,8 +119,8 @@ def run(config_file, runNumber):
 
     node_names = {-1:'A', -2: 'B', 0:'A XOR B'}
     visualize.draw_net(config, winner, True, node_names=node_names)
-    visualize.plot_stats(stats, ylog=False, view=True)
-    visualize.plot_species(stats, view=True)
+    visualize.plot_stats(stats, ylog=False, view=False)
+    visualize.plot_species(stats, view=False)
 
     return p
 
@@ -152,11 +146,6 @@ if __name__ == '__main__':
     net = NeatNet(g, config) 
 
     winnerNet = neat.nn.FeedForwardNetwork.create(g, config)
-
-    optimizer = optim.Adadelta(net.params) 
-    criterion = nn.BCELoss()
-    inputs = torch.tensor(xor_inputs_2)
-    outputs = torch.tensor(xor_outputs_2)
 
     ancestry = p.reporters.reporters[3].trace_ancestry_of_species(g.key, p.reproduction.ancestors) 
 
