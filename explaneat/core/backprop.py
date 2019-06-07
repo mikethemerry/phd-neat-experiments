@@ -19,7 +19,7 @@ def neatSigmoid(num):
     return torch.sigmoid(4.9*num)
 
 class NeatNet():
-    def __init__(self, genome, config):
+    def __init__(self, genome, config, criterion=nn.BCELoss()):
         # super(NeatNet, self).__init__()
         self._modules = []
         self.config = config
@@ -65,7 +65,7 @@ class NeatNet():
         self.order_of_nodes = self.get_order_of_nodes()
 
         self.optimizer = optim.Adadelta(self.params, lr=1.5)
-        self.criterion = nn.BCELoss()
+        self.criterion = criterion
 
 
 
@@ -134,8 +134,12 @@ class NeatNet():
                 continue
             self.nodeVals[node] = self.activateNode(node)
 
+        # print(self.nodeVals)
+        output = torch.tensor([self.nodeVals[k] for k in self.output_keys], requires_grad=True).view(-1, len(self.output_keys))
 
-        return self.nodeVals[self.output_keys[0]]
+        # print(output)
+        # return self.nodeVals[self.output_keys[0]]
+        return output
 
 
     def optimise(self, xs, ys, nEpochs = 100):
@@ -150,7 +154,7 @@ class NeatNet():
                 self.optimizer.zero_grad()   # zero the gradient buffers
 
                 output = self.forward(xs[inX])
-                target = ys[inX]
+                target = ys[inX].view(-1)
                 loss = self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
@@ -165,7 +169,16 @@ class NeatNet():
         for inX in range(len(xs)):
 
             output = self.forward(xs[inX])
-            target = ys[inX]
+            target = ys[inX].view(-1)
+            # print(self.nodeVals)
+            # print('My output is %s and target is %s'%(output, target))
+            # print(len(output))
+            # print(len(target))
+            # print(output)
+            # print(target)
+            # print(output.size())
+            # print(target.size())
+            # print(self.criterion)
             losses.append(self.criterion(output, target))
         return sum(losses)/len(losses)
 

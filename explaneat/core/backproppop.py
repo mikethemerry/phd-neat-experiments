@@ -21,21 +21,24 @@ class BackpropPopulation(Population):
     This class extends the core NEAT implementation with a backprop method
     """
 
-    def __init__(self, config, xs, ys, initial_state=None):
+    def __init__(self, config, xs, ys, initial_state=None, criterion=nn.BCELoss(), optimizer = optim.Adadelta):
         self.reporters = ReporterSet()
         self.config = config
 
         self.xs = torch.tensor(xs)
         self.ys = torch.tensor(ys)
 
-        self.optimizer = optim.Adadelta
-        self.criterion = nn.BCELoss()
+        self.optimizer = optimizer
+        self.criterion = criterion
+
+        # print(self.criterion)
 
 
         stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
         self.reproduction = config.reproduction_type(config.reproduction_config,
                                                      self.reporters,
                                                      stagnation)
+
         if config.fitness_criterion == 'max':
             self.fitness_criterion = max
         elif config.fitness_criterion == 'min':
@@ -69,7 +72,7 @@ class BackpropPopulation(Population):
         improvements = []
         for k, genome in self.population.items():
             # print(k, genome)
-            net = NeatNet(genome, self.config)
+            net = NeatNet(genome, self.config, criterion=self.criterion)
             
             preBPLoss = net.meanLoss(xs, ys)
             # print('meanLoss pre backprop: %s' % preBPLoss)
