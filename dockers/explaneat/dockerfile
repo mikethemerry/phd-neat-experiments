@@ -1,0 +1,43 @@
+FROM continuumio/anaconda3
+
+# Based on https://github.com/floydhub/dl-docker/blob/master/Dockerfile.cpu
+# by Sai Soundararaj <saip@outlook.com>
+
+MAINTAINER Mike Merry <dev@mikemerry.nz>
+
+ARG TORCH_VERSION=latest
+
+# Fixes for TZData configuration stall
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Pacific/Auckland
+
+RUN conda install -y pytorch torchvision cudatoolkit=9.0 -c pytorch
+RUN conda install jupyter \
+	pandas \
+	numpy \
+	scipy \
+	vispy \ 
+	ipython \
+	graphviz
+
+RUN mkdir /src && mkdir /src/requirements
+
+RUN git config --global url."https://aa023c0f7d168bc6f409d66332fc983033e775e0@github.com/".insteadOf "https://github.com/"
+
+# Install https://github.com/CodeReclaimers/neat-python
+RUN cd /src/requirements && \
+    git clone https://github.com/CodeReclaimers/neat-python && \
+    cd neat-python && \
+    python setup.py install
+
+# Install neat experiments
+RUN cd /src/requirements && \
+    git clone https://github.com/mikethemerry/phd-neat-experiments && \
+    cd phd-neat-experiments && \
+    conda install --file conda_requirements.txt && \
+    python setup.py install
+
+EXPOSE 6006 8888
+
+WORKDIR "/root"
+CMD ["/bin/bash"]

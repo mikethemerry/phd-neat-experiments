@@ -84,12 +84,16 @@ RUN apt-get clean && \
 # Link BLAS library to use OpenBLAS using the alternatives mechanism (https://www.scipy.org/scipylib/building/linux.html#debian-ubuntu)
 	# update-alternatives --set libblas.so.3 /usr/lib/openblas-base/libblas.so.3
 
-# Install pip
-RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
-	python get-pip.py && \
-	rm get-pip.py
+# # Install pip
+# RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
+# 	python get-pip.py && \
+# 	rm get-pip.py
+
+RUN apt update && \
+	apt install -y python3-pip
+
 # Add SNI support to Python
-RUN pip --no-cache-dir install \
+RUN pip3 --no-cache-dir install \
 		pyopenssl \
 		ndg-httpsclient \
 		pyasn1
@@ -112,10 +116,9 @@ RUN apt-get update && apt-get install -y \
 	rm -rf /var/lib/apt/lists/*
 
 # Install other useful Python packages using pip
-RUN pip --no-cache-dir install --upgrade ipython && \
-	pip --no-cache-dir install \
+RUN pip3 --no-cache-dir install --upgrade ipython && \
+	pip3 --no-cache-dir install \
 		Cython \
-		ipykernel \
 		jupyter \
 		path.py \
 		Pillow \
@@ -124,21 +127,28 @@ RUN pip --no-cache-dir install --upgrade ipython && \
 		sphinx \
 		wheel \
 		zmq \
-		&& \
-	python -m ipykernel.kernelspec
+		setuptools 
 
 
-# Install Torch
-# RUN git clone https://github.com/torch/distro.git /root/torch --recursive && \
-# 	cd /root/torch && \
-# 	bash install-deps && \
-# 	yes no | ./install.sh
-#Install torch
-# RUN apt update && \
-# 	apt install -y python3-pip && \
-# 	pip3 install opencv-python torch
+RUN mkdir /src && mkdir /src/requirements
 
-# Expose Ports for TensorBoard (6006), Ipython (8888)
+RUN git config --global url."https://aa023c0f7d168bc6f409d66332fc983033e775e0@github.com/".insteadOf "https://github.com/"
+
+RUN pip3 install torch==1.1.0
+
+# Install https://github.com/CodeReclaimers/neat-python
+RUN cd /src/requirements && \
+    git clone https://github.com/CodeReclaimers/neat-python && \
+    cd neat-python && \
+    python3 setup.py install
+
+# Install neat experiments && \
+RUN cd /src/requirements && \
+    git clone https://github.com/mikethemerry/phd-neat-experiments && \
+    cd phd-neat-experiments && \
+    pip3 install -r requirements.txt && \
+    python3 setup.py install
+
 EXPOSE 6006 8888
 
 WORKDIR "/root"

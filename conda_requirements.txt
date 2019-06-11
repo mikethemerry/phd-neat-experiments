@@ -1,0 +1,9 @@
+ipykernel==5.1.0
+ipython==7.4.0
+jupyter==1.0.0
+matplotlib==3.0.3
+pandas==0.24.2
+Pillow==6.0.0
+python-dateutil==2.8.0
+scikit-learn==0.21.1
+scipy==1.2.1
