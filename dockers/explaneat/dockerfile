@@ -12,13 +12,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Pacific/Auckland
 
 RUN conda install -y pytorch torchvision cudatoolkit=9.0 -c pytorch
-RUN conda install jupyter \
+RUN conda install -y jupyter \
 	pandas \
 	numpy \
 	scipy \
 	vispy \ 
 	ipython \
-	graphviz
+	python-graphviz
 
 RUN mkdir /src && mkdir /src/requirements
 
@@ -29,6 +29,8 @@ RUN cd /src/requirements && \
     git clone https://github.com/CodeReclaimers/neat-python && \
     cd neat-python && \
     python setup.py install
+
+ARG REBUILD=2
 
 # Install neat experiments
 RUN cd /src/requirements && \
