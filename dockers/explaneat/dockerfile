@@ -11,10 +11,13 @@ ARG TORCH_VERSION=latest
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Pacific/Auckland
 
+RUN apt update && apt upgrade && \
+    apt install -y xdg-utils
+
 # change to NZ instance
 
 RUN conda install -y pytorch torchvision cudatoolkit=9.0 -c pytorch
-RUN conda install -c menpo opencv
+RUN conda install -y -c menpo opencv
 RUN conda install -y jupyter \
 	pandas \
 	numpy \
