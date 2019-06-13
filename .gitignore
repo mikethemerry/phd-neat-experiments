@@ -92,3 +92,6 @@ target/
 *.svg
 *-checkpoint-*
 *.gv
+*.png
+*/tmp/*
+experiments/xor-explaneat/tmp/ancestor0000000000

@@ -11,7 +11,10 @@ ARG TORCH_VERSION=latest
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Pacific/Auckland
 
+# change to NZ instance
+
 RUN conda install -y pytorch torchvision cudatoolkit=9.0 -c pytorch
+RUN conda install -c menpo opencv
 RUN conda install -y jupyter \
 	pandas \
 	numpy \
@@ -19,6 +22,7 @@ RUN conda install -y jupyter \
 	vispy \ 
 	ipython \
 	python-graphviz
+
 
 RUN mkdir /src && mkdir /src/requirements
 
