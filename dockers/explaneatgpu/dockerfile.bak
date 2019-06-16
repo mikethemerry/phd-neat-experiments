@@ -1,0 +1,155 @@
+FROM ubuntu:18.04
+
+# Based on https://github.com/floydhub/dl-docker/blob/master/Dockerfile.cpu
+# by Sai Soundararaj <saip@outlook.com>
+
+MAINTAINER Mike Merry <dev@mikemerry.nz>
+
+ARG TORCH_VERSION=latest
+
+# Fixes for TZData configuration stall
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Pacific/Auckland
+
+# Install some dependencies
+RUN apt-get update && apt-get install -y \
+		bc \
+		build-essential \
+		cmake \
+		curl \
+		g++ \
+		gfortran \
+		git \
+		libffi-dev \
+		libfreetype6-dev \
+		libhdf5-dev \
+		libjpeg-dev \
+		liblcms2-dev \
+		libopenblas-dev \
+		liblapack-dev \
+		libssl-dev \
+		libtiff5-dev \
+		libwebp-dev \
+		libzmq3-dev
+
+RUN apt-get update && apt-get install -y \
+		nano \
+		pkg-config \
+		python-dev \
+		software-properties-common \
+		unzip \
+		vim \
+		wget \
+		zlib1g-dev \
+		qt5-default \
+		libvtk6-dev \
+		zlib1g-dev \
+		libjpeg-dev \
+		libwebp-dev \
+		libpng-dev \
+		libtiff5-dev \
+		libopenexr-dev \
+		libgdal-dev \
+		libdc1394-22-dev \
+		libavcodec-dev \
+		libavformat-dev
+
+
+RUN apt-get update && apt-get install -y \
+		libswscale-dev \
+		libtheora-dev \
+		libvorbis-dev \
+		libxvidcore-dev \
+		libx264-dev \
+		yasm \
+		libopencore-amrnb-dev \
+		libopencore-amrwb-dev \
+		libv4l-dev \
+		libxine2-dev \
+		libtbb-dev \
+		libeigen3-dev
+
+
+RUN apt-get update && apt-get install -y \
+		python3-dev \
+		python3-tk \
+		python3-numpy \
+		ant \
+		default-jdk \
+		doxygen
+
+RUN apt-get clean && \
+	apt-get autoremove && \
+	rm -rf /var/lib/apt/lists/*
+# Link BLAS library to use OpenBLAS using the alternatives mechanism (https://www.scipy.org/scipylib/building/linux.html#debian-ubuntu)
+	# update-alternatives --set libblas.so.3 /usr/lib/openblas-base/libblas.so.3
+
+# # Install pip
+# RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
+# 	python get-pip.py && \
+# 	rm get-pip.py
+
+RUN apt update && \
+	apt install -y python3-pip
+
+# Add SNI support to Python
+RUN pip3 --no-cache-dir install \
+		pyopenssl \
+		ndg-httpsclient \
+		pyasn1
+
+# Install useful Python packages using apt-get to avoid version incompatibilities with Tensorflow binary
+# especially numpy, scipy, skimage and sklearn (see https://github.com/tensorflow/tensorflow/issues/2034)
+RUN apt-get update && apt-get install -y \
+		python-numpy \
+		python-scipy \
+		python-nose \
+		python-h5py \
+		python-skimage \
+		python-matplotlib \
+		python-pandas \
+		python-sklearn \
+		python-sympy \
+		&& \
+	apt-get clean && \
+	apt-get autoremove && \
+	rm -rf /var/lib/apt/lists/*
+
+# Install other useful Python packages using pip
+RUN pip3 --no-cache-dir install --upgrade ipython && \
+	pip3 --no-cache-dir install \
+		Cython \
+		jupyter \
+		path.py \
+		Pillow \
+		pygments \
+		six \
+		sphinx \
+		wheel \
+		zmq \
+		setuptools 
+
+
+RUN mkdir /src && mkdir /src/requirements
+
+RUN git config --global url."https://aa023c0f7d168bc6f409d66332fc983033e775e0@github.com/".insteadOf "https://github.com/"
+
+RUN pip3 install torch==1.1.0
+
+# Install https://github.com/CodeReclaimers/neat-python
+RUN cd /src/requirements && \
+    git clone https://github.com/CodeReclaimers/neat-python && \
+    cd neat-python && \
+    python3 setup.py install
+
+# Install neat experiments && \
+RUN cd /src/requirements && \
+    git clone https://github.com/mikethemerry/phd-neat-experiments && \
+    cd phd-neat-experiments && \
+    pip3 install -r requirements.txt && \
+    python3 setup.py install
+
+EXPOSE 6006 8888
+
+WORKDIR "/root"
+CMD ["/bin/bash"]

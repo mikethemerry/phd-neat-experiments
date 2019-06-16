@@ -1,0 +1,89 @@
+FROM continuumio/anaconda3
+
+# Based on https://github.com/floydhub/dl-docker/blob/master/Dockerfile.cpu
+# by Sai Soundararaj <saip@outlook.com>
+
+MAINTAINER Mike Merry <dev@mikemerry.nz>
+
+ARG TORCH_VERSION=latest
+
+# Fixes for TZData configuration stall
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Pacific/Auckland
+
+RUN apt update && apt upgrade && \
+    apt install -y xdg-utils
+
+
+############################
+###### GPU #################
+############################
+RUN apt-get update && apt-get install -y --no-install-recommends gnupg2 curl ca-certificates && \
+    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub | apt-key add - && \
+    echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list && \
+    echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list && \
+    apt-get purge --autoremove -y curl && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV CUDA_VERSION 10.1.168
+
+ENV CUDA_PKG_VERSION 10-1=$CUDA_VERSION-1
+
+# For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        cuda-cudart-$CUDA_PKG_VERSION \
+        cuda-compat-10-1 && \
+    ln -s cuda-10.1 /usr/local/cuda && \
+    rm -rf /var/lib/apt/lists/*
+
+# Required for nvidia-docker v1
+RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
+    echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf
+
+ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
+
+# nvidia-container-runtime
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+ENV NVIDIA_REQUIRE_CUDA "cuda>=10.1 brand=tesla,driver>=384,driver<385 brand=tesla,driver>=396,driver<397 brand=tesla,driver>=410,driver<411"
+
+#############################
+
+
+# change to NZ instance
+
+RUN conda install -y pytorch torchvision cudatoolkit=9.0 -c pytorch
+RUN conda install -y -c menpo opencv
+RUN conda install -y jupyter \
+	pandas \
+	numpy \
+	scipy \
+	vispy \ 
+	ipython \
+	python-graphviz
+
+
+RUN mkdir /src && mkdir /src/requirements
+
+RUN git config --global url."https://aa023c0f7d168bc6f409d66332fc983033e775e0@github.com/".insteadOf "https://github.com/"
+
+# Install https://github.com/CodeReclaimers/neat-python
+RUN cd /src/requirements && \
+    git clone https://github.com/CodeReclaimers/neat-python && \
+    cd neat-python && \
+    python setup.py install
+
+ARG REBUILD=2
+
+# Install neat experiments
+RUN cd /src/requirements && \
+    git clone https://github.com/mikethemerry/phd-neat-experiments && \
+    cd phd-neat-experiments && \
+    conda install --file conda_requirements.txt && \
+    python setup.py install
+
+EXPOSE 6006 8888
+
+WORKDIR "/root"
+CMD ["/bin/bash"]
