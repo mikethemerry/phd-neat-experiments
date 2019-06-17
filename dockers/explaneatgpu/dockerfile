@@ -40,5 +40,5 @@ RUN cd /src/requirements && \
 
 EXPOSE 6006 8888
 
-WORKDIR "/root"
+WORKDIR "/app"
 CMD ["/bin/bash"]
