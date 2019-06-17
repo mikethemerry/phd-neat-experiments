@@ -7,4 +7,4 @@ docker run \
     --rm \
     -p 9999:9999 \
     -it \
-    mikethemerry/explaneatgpu
+    mikethemerry/explaneatgpu ./app/runJupyter.sh
