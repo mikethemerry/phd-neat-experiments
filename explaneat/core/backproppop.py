@@ -74,7 +74,7 @@ class BackpropPopulation(Population):
             # print(k, genome)
             net = NeatNet(genome, self.config, criterion=self.criterion)
             if torch.cuda.is_available():
-                for ii in range(net.params):
+                for ii in range(len(net.params)):
                     net.params[ii] = net.params[ii].to(torch.device("cuda"))
             
             preBPLoss = net.meanLoss(xs, ys)
