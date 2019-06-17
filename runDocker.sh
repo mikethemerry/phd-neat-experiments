@@ -7,5 +7,4 @@ docker run \
     --rm \
     -p 9999:9999 \
     -it \
-    mikethemerry/explaneatgpu \
-    jupyter notebook --ip=0.0.0.0 --port=9999 --allow-root
+    mikethemerry/explaneatgpu

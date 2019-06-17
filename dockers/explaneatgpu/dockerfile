@@ -37,8 +37,8 @@ RUN cd /src/requirements && \
     cd phd-neat-experiments && \
     conda install -y --file conda_requirements.txt
 
-ARG REBUILD_SECOND=1
-RUN cd /src/requirements/phd-neat-experiments && python setup.py install
+# ARG REBUILD_SECOND=1
+# RUN cd /src/requirements/phd-neat-experiments && python setup.py install
 
 EXPOSE 6006 8888
 
