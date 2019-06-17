@@ -29,14 +29,16 @@ RUN cd /src/requirements && \
     cd neat-python && \
     python setup.py install
 
-ARG REBUILD=4
+ARG REBUILD_FIRST=1
 
 # Install neat experiments
 RUN cd /src/requirements && \
     git clone https://github.com/mikethemerry/phd-neat-experiments && \
     cd phd-neat-experiments && \
-    conda install -y --file conda_requirements.txt && \
-    python setup.py install
+    conda install -y --file conda_requirements.txt
+
+ARG REBUILD_SECOND=1
+RUN python setup.py install
 
 EXPOSE 6006 8888
 
