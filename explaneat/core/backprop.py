@@ -13,7 +13,6 @@ import copy
 
 def tt(num):
     if torch.cuda.is_available():
-        print("trying to cudafy")
         return nn.Parameter(torch.tensor([float(num)], requires_grad=True).cuda())
     else:
         return nn.Parameter(torch.tensor([float(num)], requires_grad=True))
