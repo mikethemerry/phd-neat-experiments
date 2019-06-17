@@ -12,7 +12,11 @@ import copy
 
 
 def tt(num):
-    return nn.Parameter(torch.tensor([float(num)], requires_grad=True))
+    if torch.cuda.is_available():
+        dtype = torch.cuda.FloatStorage
+    else:
+        dtype = torch.FloatStorage
+    return nn.Parameter(torch.tensor([float(num)], dtype=dtype, requires_grad=True))
 
 
 def neatSigmoid(num):

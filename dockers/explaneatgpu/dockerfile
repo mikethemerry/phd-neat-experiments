@@ -29,7 +29,7 @@ RUN cd /src/requirements && \
     cd neat-python && \
     python setup.py install
 
-ARG REBUILD=3
+ARG REBUILD=4
 
 # Install neat experiments
 RUN cd /src/requirements && \
