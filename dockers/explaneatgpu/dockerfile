@@ -35,7 +35,7 @@ ARG REBUILD=4
 RUN cd /src/requirements && \
     git clone https://github.com/mikethemerry/phd-neat-experiments && \
     cd phd-neat-experiments && \
-    conda install --file conda_requirements.txt && \
+    conda install -y --file conda_requirements.txt && \
     python setup.py install
 
 EXPOSE 6006 8888
