@@ -1,7 +1,7 @@
 """Implements the core evolution algorithm."""
 from __future__ import print_function
 
-from neat.reporting import ReporterSet
+
 from neat.math_util import mean
 from neat.six_util import iteritems, itervalues
 
@@ -12,9 +12,15 @@ import torch.optim as optim
 
 from explaneat.core.backprop import NeatNet
 
+## Replace neat-based reporting with explaneat extensions of the reporting
+## methods with hooks regarding backprop
+# from neat.reporting import ReporterSet
+# from neat.reporting import BaseReporter
+from explaneat.core.experiment import ReporterSet
+from explaneat.core.experiment import BaseReporter
+
 from neat.population import Population
 
-from neat.reporting import BaseReporter
 
 class BackpropPopulation(Population):
     """
@@ -150,7 +156,8 @@ class BackpropPopulation(Population):
             # Create the next generation from the current generation.
             self.population = self.reproduction.reproduce(self.config, self.species,
                                                           self.config.pop_size, self.generation)
-            # self.reporters.post_reproduction(self.config, self.population, self.species)
+
+            self.reporters.post_reproduction(self.config, self.population, self.species)
 
 
             # Check for complete extinction.
