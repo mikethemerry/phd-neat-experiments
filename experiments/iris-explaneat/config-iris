@@ -66,7 +66,7 @@ weight_init_stdev       = 1.0
 weight_max_value        = 30
 weight_min_value        = -30
 weight_mutate_power     = 0.5
-weight_mutate_rate      = 0.05
+weight_mutate_rate      = 0.00
 weight_replace_rate     = 0.005
 
 [DefaultSpeciesSet]
