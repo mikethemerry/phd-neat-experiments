@@ -74,7 +74,6 @@ def run(config_file, runNumber):
                          config_file)
 
 
-
     # Create the population, which is the top-level object for a NEAT run.
     p = BackpropPopulation(config, 
                             xs, 
