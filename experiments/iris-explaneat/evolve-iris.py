@@ -19,6 +19,7 @@ from explaneat.core.backprop import NeatNet
 from explaneat.core import backprop
 from explaneat.core.backproppop import BackpropPopulation
 from explaneat.visualization import visualize
+from explaneat.core.experiment import ExperimentReporter
 
 from sklearn import datasets
 from sklearn import metrics
@@ -52,7 +53,7 @@ def eval_genomes(genomes, config):
         preds = []
         for xi in xs:
             preds.append(net.activate(xi))
-        print("my predictions are")
+        # print("my predictions are")
         # print(torch.tensor(preds))
         # print(torch.tensor(ys))
         genome.fitness = float(1./loss(torch.tensor(preds), torch.tensor(ys)))
@@ -62,6 +63,11 @@ def eval_genomes(genomes, config):
 
 
 def run(config_file, runNumber):
+
+    saveLocation = './../../data/experiments/iris/experiment-0/'
+    if not os.path.exists(saveLocation):
+        os.makedirs(saveLocation)
+
     # Load configuration.
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
@@ -70,15 +76,19 @@ def run(config_file, runNumber):
 
 
     # Create the population, which is the top-level object for a NEAT run.
-    p = BackpropPopulation(config, xs, ys, criterion=nn.CrossEntropyLoss())
+    p = BackpropPopulation(config, 
+                            xs, 
+                            ys, 
+                            criterion=nn.CrossEntropyLoss())
 
     # Add a stdout reporter to show progress in the terminal.
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
-    p.add_reporter(neat.Checkpointer(5))
+    p.add_reporter(neat.Checkpointer(5, filename_prefix=saveLocation))
     bpReporter = backprop.BackpropReporter(True)
     p.add_reporter(bpReporter)
+    p.add_reporter(ExperimentReporter(saveLocation))
 
     # Run for up to nGenerations generations.
     winner = p.run(eval_genomes, nGenerations)
