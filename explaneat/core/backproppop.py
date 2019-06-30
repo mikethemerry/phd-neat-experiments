@@ -1,9 +1,9 @@
 """Implements the core evolution algorithm."""
 from __future__ import print_function
 
-from neat.reporting import ReporterSet
-from neat.math_util import mean
+
 from neat.six_util import iteritems, itervalues
+from neat.math_util import mean, stdev
 
 import torch
 import torch.nn as nn
@@ -12,16 +12,31 @@ import torch.optim as optim
 
 from explaneat.core.backprop import NeatNet
 
+## Replace neat-based reporting with explaneat extensions of the reporting
+## methods with hooks regarding backprop
+# from neat.reporting import ReporterSet
+# from neat.reporting import BaseReporter
+from explaneat.core.experiment import ExperimentReporterSet as ReporterSet
+
+
+# from explaneat.core.experiment import
+
 from neat.population import Population
 
-from neat.reporting import BaseReporter
 
 class BackpropPopulation(Population):
     """
     This class extends the core NEAT implementation with a backprop method
     """
 
-    def __init__(self, config, xs, ys, initial_state=None, criterion=nn.BCELoss(), optimizer = optim.Adadelta):
+    def __init__(self, 
+                config, 
+                xs, 
+                ys, 
+                initial_state=None, 
+                criterion=nn.BCELoss(), 
+                optimizer = optim.Adadelta,
+                nEpochs = 100):
         self.reporters = ReporterSet()
         self.config = config
 
@@ -31,8 +46,7 @@ class BackpropPopulation(Population):
         self.optimizer = optimizer
         self.criterion = criterion
 
-        # print(self.criterion)
-
+        self.nEpochs = nEpochs
 
         stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
         self.reproduction = config.reproduction_type(config.reproduction_config,
@@ -71,44 +85,26 @@ class BackpropPopulation(Population):
         postLosses = []
         improvements = []
         for k, genome in self.population.items():
-            # print(k, genome)
+
             net = NeatNet(genome, self.config, criterion=self.criterion)
             
             preBPLoss = net.meanLoss(xs, ys)
-            # print('meanLoss pre backprop: %s' % preBPLoss)
             
             net.optimise(xs, ys, nEpochs)
             
             postBPLoss = net.meanLoss(xs, ys)
             postLosses.append(postBPLoss)
-            # print('meanLoss post backprop: %s' % postBPLoss)
             
             lossDiff = postBPLoss - preBPLoss
 
             losses.append((preBPLoss, postBPLoss, lossDiff))
             improvements.append(lossDiff)
             net.updateGenomeWeights(genome)
-            # print('finished backprop on genome %s' % k)
+
         print('mean improvement: %s' % mean(improvements))
         print('best improvement: %s' % min(improvements))
         print('best loss: %s' % min(postLosses))
             
-    #     for inX in range(4):
-    #         optimizer.zero_grad()   # zero the gradient buffers
-
-    #         output = net(inputs[inX])
-    #         target = outputs[inX]
-    #         loss = criterion(output, target)
-    #         loss.backward()
-    #         optimizer.step()
-    #     if gen%2000 == 1:
-    #         print(gen)
-    #         for inX in range(30):
-
-    #             output = net(inputs[inX])
-    #             target = outputs[inX]
-
-    #             print(output, target)
 
     def run(self, fitness_function, n=None):
         """
@@ -124,8 +120,12 @@ class BackpropPopulation(Population):
 
             self.reporters.start_generation(self.generation)
 
-            # self.backprop(self.population, self.config, self.xs, self.ys)
+            self.reporters.pre_backprop(self.config, self.population, self.species)
+            
             self.backpropagate(self.xs, self.ys, nEpochs=100)
+
+            self.reporters.post_backprop(self.config, self.population, self.species)
+            
             # Evaluate all genomes using the user-provided function.
             fitness_function(list(iteritems(self.population)), self.config)
 
@@ -148,9 +148,11 @@ class BackpropPopulation(Population):
                     break
 
             # Create the next generation from the current generation.
+            self.reporters.pre_reproduction(self.config, self.population, self.species)
             self.population = self.reproduction.reproduce(self.config, self.species,
                                                           self.config.pop_size, self.generation)
-            # self.reporters.post_reproduction(self.config, self.population, self.species)
+
+            self.reporters.post_reproduction(self.config, self.population, self.species)
 
 
             # Check for complete extinction.
@@ -172,6 +174,8 @@ class BackpropPopulation(Population):
             self.reporters.end_generation(self.config, self.population, self.species)
 
             self.generation += 1
+        
+        self.reporters.end_experiment(self.config, self.population, self.species)
 
         if self.config.no_fitness_termination:
             self.reporters.found_solution(self.config, self.generation, self.best_genome)
