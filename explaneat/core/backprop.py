@@ -139,7 +139,8 @@ class NeatNet():
 
         # print(self.nodeVals)
         output = torch.tensor([self.nodeVals[k] for k in self.output_keys], requires_grad=True).view(-1, len(self.output_keys))
-
+        if len(self.output_keys) == 1:
+            output = output.view(1)
         # print(output)
         # return self.nodeVals[self.output_keys[0]]
         return output
