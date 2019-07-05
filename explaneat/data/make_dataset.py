@@ -30,6 +30,8 @@ def main(input_filepath, output_filepath):
     resultsFileName = 'results.csv'
 
     generationRecords = None
+    results = None
+    configurations = None
 
 
     for experiment in experiments:
@@ -54,14 +56,34 @@ def main(input_filepath, output_filepath):
             else:
                 generationRecords = generationRecordsDF
 
+            # Get ersults
+            resultsDF = parse_results(
+                os.path.join(runDir, resultsFileName),
+                columnsToAdd = runDetails
+            )
+            if results is not None:
+                results = results.append(resultsDF)
+            else:
+                results = resultsDF
+
+
     ## Output to ../processed
     generationRecords.to_csv(os.path.join(output_filepath, 'generationRecords.csv'))
+    results.to_csv(os.path.join(output_filepath, 'results.csv'))
 
 
 def parse_generation_records(grFilePath, columnsToAdd = None):
     with open(grFilePath, 'r') as fp:
         gr = json.load(fp)
     df = pd.DataFrame.from_dict(gr).transpose()
+    if columnsToAdd is not None:
+        # assert columnsToAdd in(dict, object)
+        for col, val in columnsToAdd.items():
+            df[col] = val
+    return df
+
+def parse_results(resultsFilePath, columnsToAdd = None):
+    df = pd.DataFrame.from_csv(resultsFilePath)
     if columnsToAdd is not None:
         # assert columnsToAdd in(dict, object)
         for col, val in columnsToAdd.items():
