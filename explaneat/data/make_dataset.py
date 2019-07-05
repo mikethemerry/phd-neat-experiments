@@ -2,7 +2,13 @@
 import click
 import logging
 from pathlib import Path
-from dotenv import find_dotenv, load_dotenv
+# from dotenv import find_dotenv, load_dotenv
+import os
+import sys
+
+import json
+
+import pandas as pd
 
 
 @click.command()
@@ -15,6 +21,62 @@ def main(input_filepath, output_filepath):
     logger = logging.getLogger(__name__)
     logger.info('making final data set from raw data')
 
+    # Get list of experiments (excluding hidden files like .gitignore)
+    experiments = [d for d in os.listdir(input_filepath) if not d.startswith('.')]
+
+    # Define file names
+    configurationFileName = 'config.conf'
+    generationRecordFileName = 'generationRecords.json'
+    resultsFileName = 'results.csv'
+
+    generationRecords = None
+
+
+    for experiment in experiments:
+        experimentDir = os.path.join(input_filepath, experiment)
+        
+        experimentRuns = os.listdir(experimentDir)
+
+        for run in experimentRuns:
+            logger.info('parsing {}'.format(run))
+            runDir = os.path.join(experimentDir, run)
+
+            runDetails = parse_experiment_filename(run)
+            runDetails['dataset'] = experiment
+
+            # Get generation records
+            generationRecordsDF = parse_generation_records(
+                os.path.join(runDir, generationRecordFileName),
+                columnsToAdd = runDetails
+                )
+            if generationRecords is not None:
+                generationRecords = generationRecords.append(generationRecordsDF)
+            else:
+                generationRecords = generationRecordsDF
+
+    ## Output to ../processed
+    generationRecords.to_csv(os.path.join(output_filepath, 'generationRecords.csv'))
+
+
+def parse_generation_records(grFilePath, columnsToAdd = None):
+    with open(grFilePath, 'r') as fp:
+        gr = json.load(fp)
+    df = pd.DataFrame.from_dict(gr).transpose()
+    if columnsToAdd is not None:
+        # assert columnsToAdd in(dict, object)
+        for col, val in columnsToAdd.items():
+            df[col] = val
+    return df
+
+
+def parse_experiment_filename(filename):
+    runDetails = filename.split('-')
+    details = {
+        "experimentType": runDetails[1],
+        "experimentValue": runDetails[2],
+        "experimentIteration": runDetails[3]
+    }
+    return details
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -25,6 +87,6 @@ if __name__ == '__main__':
 
     # find .env automagically by walking up directories until it's found, then
     # load up the .env entries as environment variables
-    load_dotenv(find_dotenv())
+    # load_dotenv(find_dotenv())
 
     main()
