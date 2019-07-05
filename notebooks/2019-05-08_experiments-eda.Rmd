@@ -1,0 +1,130 @@
+---
+title: "EDA of ExplaNEAT experiments"
+author: "MIKE MERRY"
+date: "7/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+
+genRecords <- read.csv('./../data/processed/generationRecords.csv') 
+genRecords <- genRecords %>% as_tibble() %>%
+  mutate(generationDuration = generationEndTime - generationStartTime,
+         reproductionDuration = reproductionEndTime - reproductionStartTime,
+         backpropDuration = backpropEndTime - backpropStartTime
+  )
+  
+```
+
+```{r}
+genRecords %>%
+  glimpse
+```
+
+```{r}
+genRecords %>%
+  group_by(dataset,
+           experimentValue,
+           generation) %>%
+  summarise(backpropDurationMean = mean(backpropDuration),
+            backpropDurationSD = sd(backpropDuration)) %>%
+  ggplot(aes(experimentValue, backpropDurationMean)) +
+  geom_point()
+```
+```{r}
+genRecords %>%
+  group_by(dataset,
+           experimentValue) %>%
+  summarise(meanDuration = mean(generationDuration))
+```
+
+
+```{r}
+
+genRecords %>%
+  group_by(dataset,
+           experimentValue,
+           generation) %>%
+  summarise(backpropDurationMean = mean(backpropDuration),
+            backpropDurationSD = sd(backpropDuration),
+            genomeNodeSizesMean = mean(genomeNodeSizesMean),
+            genomeNodeSizesSD = sd(genomeNodeSizesMean)) %>%
+  ggplot(aes(generation,
+             y=genomeNodeSizesMean, 
+             color=as.factor(experimentValue), 
+             group=experimentValue)) +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 5)) + 
+  geom_line()
+```
+
+```{r}
+
+genRecords %>%
+  group_by(dataset,
+           experimentValue,
+           generation) %>%
+  summarise(backpropDurationMean = mean(backpropDuration/experimentValue),
+            backpropDurationSD = sd(backpropDuration/experimentValue)) %>%
+  ggplot(aes(generation, backpropDurationMean, group=experimentValue, color=as.factor(experimentValue))) +
+  geom_point() + geom_line()
+```
+
+```{r}
+genRecords %>%
+  ggplot(aes(generation, 
+             1/fitnessMean, 
+             group=interaction(as.factor(experimentValue), experimentIteration), 
+             color=as.factor(experimentValue))) +
+  geom_point() + 
+  geom_line() +
+  ylim(0, 1.5)
+```
+
+
+
+```{r}
+genRecords %>%
+  ggplot(aes(generation, 
+             1/fitnessMean, 
+             group=experimentIteration, 
+             color=as.factor(experimentIteration))) +
+  geom_point() + 
+  geom_line() +
+  ylim(0, 1.5) +
+  facet_wrap(~experimentValue)
+```
+
+```{r}
+genRecords %>%
+  mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
+         backpropDurationIndvidual = backpropDuration/experimentValue,
+         reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
+  ggplot(aes(genomeNodeSizesMean, generationDurationPerIndvidual, color=as.factor(experimentValue)) )+
+  geom_point() +
+  ylim(0, 15)
+```
+```{r}
+genRecords %>%
+  mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
+         backpropDurationIndvidual = backpropDuration/experimentValue,
+         reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
+  ggplot(aes(genomeNodeSizesMean, reproductionDurationIndividual, color=as.factor(experimentValue)) )+
+  geom_point()
+```
+```{r}
+genRecords %>%
+  mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
+         backpropDurationIndvidual = backpropDuration/experimentValue,
+         reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
+  ggplot(aes(genomeNodeSizesMean, backpropDurationIndvidual, color=as.factor(experimentValue)) )+
+  geom_point() +
+  ylim(0, 15)
+```
+
+
