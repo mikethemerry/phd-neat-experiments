@@ -40,8 +40,14 @@ class BackpropPopulation(Population):
         self.reporters = ReporterSet()
         self.config = config
 
-        self.xs = torch.tensor(xs)
-        self.ys = torch.tensor(ys)
+        if not type(xs) is torch.Tensor:
+            self.xs = torch.tensor(xs)
+        else:
+            self.xs = xs
+        if not type(ys) is torch.Tensor:
+            self.ys = torch.tensor(ys)
+        else:
+            self.ys = ys
 
         self.optimizer = optimizer
         self.criterion = criterion
