@@ -106,7 +106,7 @@ class BackpropPopulation(Population):
         print('best loss: %s' % min(postLosses))
             
 
-    def run(self, fitness_function, n=None):
+    def run(self, fitness_function, n=None, nEpochs = 100):
         """
         
         """
@@ -122,7 +122,7 @@ class BackpropPopulation(Population):
 
             self.reporters.pre_backprop(self.config, self.population, self.species)
             
-            self.backpropagate(self.xs, self.ys, nEpochs=100)
+            self.backpropagate(self.xs, self.ys, nEpochs=nEpochs)
 
             self.reporters.post_backprop(self.config, self.population, self.species)
             
