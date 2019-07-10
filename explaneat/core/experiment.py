@@ -103,6 +103,7 @@ class ExperimentReporter(object):
         fitnesses = [c.fitness for c in itervalues(population)]
         fit_mean = mean(fitnesses)
         fit_std = stdev(fitnesses)
+        self.set_generation_record_value('fitnesses', fitnesses)
         self.set_generation_record_value('fitnessMean', fit_mean)
         self.set_generation_record_value('fitnessSD', fit_std)
 

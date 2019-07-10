@@ -40,8 +40,14 @@ class BackpropPopulation(Population):
         self.reporters = ReporterSet()
         self.config = config
 
-        self.xs = torch.tensor(xs)
-        self.ys = torch.tensor(ys)
+        if not type(xs) is torch.Tensor:
+            self.xs = torch.tensor(xs)
+        else:
+            self.xs = xs
+        if not type(ys) is torch.Tensor:
+            self.ys = torch.tensor(ys)
+        else:
+            self.ys = ys
 
         self.optimizer = optimizer
         self.criterion = criterion
@@ -106,7 +112,7 @@ class BackpropPopulation(Population):
         print('best loss: %s' % min(postLosses))
             
 
-    def run(self, fitness_function, n=None):
+    def run(self, fitness_function, n=None, nEpochs = 100):
         """
         
         """
@@ -122,7 +128,7 @@ class BackpropPopulation(Population):
 
             self.reporters.pre_backprop(self.config, self.population, self.species)
             
-            self.backpropagate(self.xs, self.ys, nEpochs=100)
+            self.backpropagate(self.xs, self.ys, nEpochs=nEpochs)
 
             self.reporters.post_backprop(self.config, self.population, self.species)
             

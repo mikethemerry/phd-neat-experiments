@@ -12,10 +12,14 @@ import copy
 
 
 def tt(num):
+    USE_CUDA = torch.cuda.is_available()
+    # USE_CUDA = False
+    device = torch.device("cuda" if USE_CUDA else "cpu")
+
     # if torch.cuda.is_available():
         # return nn.Parameter(torch.tensor([float(num)], requires_grad=True).cuda())
     # else:
-    return nn.Parameter(torch.tensor([float(num)], requires_grad=True))
+    return nn.Parameter(torch.tensor([float(num)], requires_grad=True).to(device))
 
 
 def neatSigmoid(num):
@@ -67,6 +71,11 @@ class NeatNet():
             self.connections_by_output[k[1]][k] = c
         self.order_of_nodes = self.get_order_of_nodes()
 
+
+        USE_CUDA = torch.cuda.is_available()
+        # USE_CUDA = False
+        device = torch.device("cuda" if USE_CUDA else "cpu")
+        
         self.optimizer = optim.Adadelta(self.params, lr=1.5)
         self.criterion = criterion
 
@@ -147,10 +156,14 @@ class NeatNet():
 
 
     def optimise(self, xs, ys, nEpochs = 100):
+
+        USE_CUDA = torch.cuda.is_available()
+        # USE_CUDA = False
+        device = torch.device("cuda" if USE_CUDA else "cpu")
         if not type(xs) is torch.Tensor:
-            xs = torch.tensor(xs)
+            xs = torch.tensor(xs).to(device)
         if not type(ys) is torch.Tensor:
-            ys = torch.tensor(ys)
+            ys = torch.tensor(ys).to(device)
 
         # print('going to train for %s epochs' % nEpochs)
         for epoch in range(nEpochs):
