@@ -1,8 +1,8 @@
 #! /bin/bash
 
-cd /src/requirements/phd-neat-experiments
+cd ~/app
 
-git pull
+# git pull
 
 python setup.py develop
 
