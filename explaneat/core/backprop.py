@@ -77,7 +77,7 @@ class NeatNet():
         device = torch.device("cuda" if USE_CUDA else "cpu")
         
         self.optimizer = optim.Adadelta(self.params, lr=1.5)
-        self.criterion = criterion
+        self.criterion = criterion.to(device)
 
 
 
