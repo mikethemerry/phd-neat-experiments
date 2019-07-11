@@ -172,6 +172,7 @@ class NeatNet():
 
                 output = self.forward(xs[inX])
                 target = ys[inX].view(-1)
+                target = target.to('cpu')
                 loss = self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
@@ -196,6 +197,8 @@ class NeatNet():
             # print(output.size())
             # print(target.size())
             # print(self.criterion)
+            target = target.to('cpu')
+#             print(target.device)
             losses.append(self.criterion(output, target))
         return sum(losses)/len(losses)
 
