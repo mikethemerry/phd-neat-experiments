@@ -11,120 +11,488 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
+library("GGally")           # Load GGally package
 
 genRecords <- read.csv('./../data/processed/generationRecords.csv') 
 genRecords <- genRecords %>% as_tibble() %>%
-  mutate(generationDuration = generationEndTime - generationStartTime,
-         reproductionDuration = reproductionEndTime - reproductionStartTime,
-         backpropDuration = backpropEndTime - backpropStartTime
-  )
-  
+ mutate(generationDuration = generationEndTime - generationStartTime,
+     reproductionDuration = reproductionEndTime - reproductionStartTime,
+     backpropDuration = backpropEndTime - backpropStartTime
+ )
+
+results_raw <- read.csv('./../data/processed/results.csv')
+
+results_iris <- results_raw %>% filter(dataset== 'iris') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2)
+     ) %>%
+ separate(X0,c('sepal.length',
+ 'sepal.width',
+ 'petal.length',
+ 'petal.width'), sep=" ", remove = FALSE) %>%
+ separate(X2,c('p0',
+ 'p1',
+ 'p2'), sep=", ", remove = FALSE) %>%
+ mutate(
+  sepal.length = as.numeric(sepal.length),
+  sepal.width = as.numeric(sepal.width),
+  petal.length = as.numeric(petal.length),
+  petal.width = as.numeric(petal.width),
+  p0 = as.numeric(p0),
+  p1 = as.numeric(p1),
+  p2 = as.numeric(p2),
+  maxPred = pmax(p0, p1, p2),
+  pred = case_when(p0 == maxPred ~ 0,
+           p1 == maxPred ~ 1,
+           p2 == maxPred ~ 2),
+  pred = as.factor(pred),
+  correct = pred == X1)
+
+
+numericcharacters <- function(x) {
+  !any(is.na(suppressWarnings(as.numeric(x)))) & is.character(x)
+}
+
+results_bc <- results_raw %>% filter(dataset== 'breast-cancer') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2),
+     X2 = as.numeric(X2),
+     pred = round(X2),
+     correct = pred==X1
+     ) %>%
+ separate(X0,c('mean radius', 'mean texture', 'mean perimeter', 'mean area',
+       'mean smoothness', 'mean compactness', 'mean concavity',
+       'mean concave points', 'mean symmetry', 'mean fractal dimension',
+       'radius error', 'texture error', 'perimeter error', 'area error',
+       'smoothness error', 'compactness error', 'concavity error',
+       'concave points error', 'symmetry error',
+       'fractal dimension error', 'worst radius', 'worst texture',
+       'worst perimeter', 'worst area', 'worst smoothness',
+       'worst compactness', 'worst concavity', 'worst concave points',
+       'worst symmetry', 'worst fractal dimension'), sep=" ", remove = FALSE) %>%
+  mutate_if(numericcharacters,as.numeric)
+```
+```{r}
+results_iris %>% glimpse()
+```
+
+```{r}
+results_bc %>% glimpse()
+```
+
+
+```{r}
+
+```
+
+
+
+```{r}
+genRecords %>%
+ glimpse
 ```
 
 ```{r}
 genRecords %>%
-  glimpse
+ group_by(dataset,
+      experimentValue,
+      generation) %>%
+  filter(dataset=='iris') %>%
+ summarise(backpropDurationMean = mean(backpropDuration/experimentValue),
+      backpropDurationSD = sd(backpropDuration/experimentValue)) %>%
+ ggplot(aes(experimentValue, backpropDurationMean)) +
+ geom_point() + 
+ ylim(0, 10) +
+  ggtitle("BP Duration against population size - Iris")
+
+
+genRecords %>%
+ group_by(dataset,
+      experimentValue,
+      generation) %>%
+  filter(dataset=='breast-cancer') %>%
+ summarise(backpropDurationMean = mean(backpropDuration/experimentValue),
+      backpropDurationSD = sd(backpropDuration/experimentValue)) %>%
+ ggplot(aes(experimentValue, backpropDurationMean)) +
+ geom_point() + 
+ ylim(0, 45)+
+  ggtitle("BP Duration against population size - Breast Cancer")
+```
+```{r}
+genRecords %>%
+ group_by(dataset,
+      experimentValue) %>%
+  filter(dataset=='iris') %>%
+ summarise(meanDuration = mean(generationDuration))
+
+genRecords %>%
+ group_by(dataset,
+      experimentValue) %>%
+  filter(dataset=='breast-cancer') %>%
+ summarise(meanDuration = mean(generationDuration))
 ```
 
+
 ```{r}
+
+genRecords %>%
+ group_by(dataset,
+      experimentValue,
+      generation) %>%
+  filter(dataset=='iris') %>%
+ summarise(backpropDurationMean = mean(backpropDuration),
+      backpropDurationSD = sd(backpropDuration),
+      genomeNodeSizesMean = mean(genomeNodeSizesMean),
+      genomeNodeSizesSD = sd(genomeNodeSizesMean)) %>%
+ ggplot(aes(generation,
+       y=genomeNodeSizesMean, 
+       color=as.factor(experimentValue), 
+       group=experimentValue)) +
+ geom_point() +
+ scale_y_continuous(limits = c(0, 8)) + 
+ geom_line()+
+  ggtitle("Num nodes against generation - Iris")
+
+
 genRecords %>%
   group_by(dataset,
-           experimentValue,
-           generation) %>%
+      experimentValue,
+      generation) %>%
+  filter(dataset=='breast-cancer') %>%
   summarise(backpropDurationMean = mean(backpropDuration),
-            backpropDurationSD = sd(backpropDuration)) %>%
-  ggplot(aes(experimentValue, backpropDurationMean)) +
-  geom_point()
-```
-```{r}
-genRecords %>%
-  group_by(dataset,
-           experimentValue) %>%
-  summarise(meanDuration = mean(generationDuration))
-```
-
-
-```{r}
-
-genRecords %>%
-  group_by(dataset,
-           experimentValue,
-           generation) %>%
-  summarise(backpropDurationMean = mean(backpropDuration),
-            backpropDurationSD = sd(backpropDuration),
-            genomeNodeSizesMean = mean(genomeNodeSizesMean),
-            genomeNodeSizesSD = sd(genomeNodeSizesMean)) %>%
+      backpropDurationSD = sd(backpropDuration),
+      genomeNodeSizesMean = mean(genomeNodeSizesMean),
+      genomeNodeSizesSD = sd(genomeNodeSizesMean)) %>%
   ggplot(aes(generation,
-             y=genomeNodeSizesMean, 
-             color=as.factor(experimentValue), 
-             group=experimentValue)) +
+       y=genomeNodeSizesMean, 
+       color=as.factor(experimentValue), 
+       group=experimentValue)) +
   geom_point() +
-  scale_y_continuous(limits = c(0, 5)) + 
-  geom_line()
+  ylim(0, 8) +
+  geom_line()+
+  ggtitle("Num nodes against generation - Breast Cancer")
 ```
 
 ```{r}
 
 genRecords %>%
-  group_by(dataset,
-           experimentValue,
-           generation) %>%
-  summarise(backpropDurationMean = mean(backpropDuration/experimentValue),
-            backpropDurationSD = sd(backpropDuration/experimentValue)) %>%
-  ggplot(aes(generation, backpropDurationMean, group=experimentValue, color=as.factor(experimentValue))) +
-  geom_point() + geom_line()
+ group_by(dataset,
+      experimentValue,
+      generation) %>%
+  filter(dataset=='iris') %>%
+ summarise(backpropDurationMean = mean(backpropDuration/experimentValue),
+      backpropDurationSD = sd(backpropDuration/experimentValue)) %>%
+ ggplot(aes(generation, backpropDurationMean, group=experimentValue, color=as.factor(experimentValue))) +
+ geom_point() + 
+ geom_line() + 
+ ylim(0, 10) +
+  ggtitle("Backprop duration against generation - Iris")
+
+
+genRecords %>%
+ group_by(dataset,
+      experimentValue,
+      generation) %>%
+  filter(dataset=='breast-cancer') %>%
+ summarise(backpropDurationMean = mean(backpropDuration/experimentValue),
+      backpropDurationSD = sd(backpropDuration/experimentValue)) %>%
+ ggplot(aes(generation, backpropDurationMean, group=experimentValue, color=as.factor(experimentValue))) +
+ geom_point() + 
+ geom_line() + 
+ ylim(0, 50) +
+  ggtitle("Backprop duration against generation - Breast Cancer")
 ```
 
 ```{r}
 genRecords %>%
-  ggplot(aes(generation, 
-             1/fitnessMean, 
-             group=interaction(as.factor(experimentValue), experimentIteration), 
-             color=as.factor(experimentValue))) +
-  geom_point() + 
-  geom_line() +
-  ylim(0, 1.5)
+  filter(dataset=='iris') %>%
+ ggplot(aes(generation, 
+       1/fitnessMean, 
+       group=interaction(as.factor(experimentValue), experimentIteration), 
+       color=as.factor(experimentValue))) +
+ geom_point(alpha=0.3) + 
+ geom_line(alpha=0.3) +
+ ylim(0, 1.5) +
+  ggtitle("Fitness duration against generation - Iris")
+
+
+genRecords %>%
+  filter(dataset=='breast-cancer') %>%
+ ggplot(aes(generation, 
+       1/fitnessMean, 
+       group=interaction(as.factor(experimentValue), experimentIteration), 
+       color=as.factor(experimentValue))) +
+ geom_point(alpha=0.3) + 
+ geom_line(alpha=0.3) +
+ ylim(0, 12) +
+  ggtitle("Fitness duration against generation - Breast Cancer")
 ```
 
 
 
 ```{r}
 genRecords %>%
-  ggplot(aes(generation, 
-             1/fitnessMean, 
-             group=experimentIteration, 
-             color=as.factor(experimentIteration))) +
-  geom_point() + 
-  geom_line() +
-  ylim(0, 1.5) +
-  facet_wrap(~experimentValue)
+  filter(dataset=='iris') %>%
+ ggplot(aes(generation, 
+       1/fitnessMean, 
+       group=experimentIteration, 
+       color=as.factor(experimentIteration))) +
+ geom_point() + 
+ geom_line() +
+ ylim(0, 1.5) +
+ facet_wrap(~experimentValue) +
+  ggtitle("Fitness duration against generation - Iris")
+
+genRecords %>%
+  filter(dataset=='breast-cancer') %>%
+ ggplot(aes(generation, 
+       1/fitnessMean, 
+       group=experimentIteration, 
+       color=as.factor(experimentIteration))) +
+ geom_point() + 
+ geom_line() +
+ facet_wrap(~experimentValue) +
+ ylim(0, 12) +
+  ggtitle("Fitness duration against generation - Breast Cancer")
 ```
 
 ```{r}
 genRecords %>%
-  mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
-         backpropDurationIndvidual = backpropDuration/experimentValue,
-         reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
-  ggplot(aes(genomeNodeSizesMean, generationDurationPerIndvidual, color=as.factor(experimentValue)) )+
-  geom_point() +
-  ylim(0, 15)
+  filter(dataset=='iris') %>%
+ mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
+     backpropDurationIndvidual = backpropDuration/experimentValue,
+     reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
+ ggplot(aes(genomeNodeSizesMean, generationDurationPerIndvidual, color=as.factor(experimentValue)) )+
+ geom_point() +
+ ylim(0, 15) +
+  ggtitle("Generation duration against num nodes - Iris")
+
+genRecords %>%
+  filter(dataset=='breast-cancer') %>%
+ mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
+     backpropDurationIndvidual = backpropDuration/experimentValue,
+     reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
+ ggplot(aes(genomeNodeSizesMean, generationDurationPerIndvidual, color=as.factor(experimentValue)) )+
+ geom_point() +
+ ylim(0, 70) +
+  ggtitle("Generation duration against num nodes - Breast cancer")
 ```
 ```{r}
 genRecords %>%
-  mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
-         backpropDurationIndvidual = backpropDuration/experimentValue,
-         reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
-  ggplot(aes(genomeNodeSizesMean, reproductionDurationIndividual, color=as.factor(experimentValue)) )+
-  geom_point()
+  filter(dataset=='iris') %>%
+ mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
+     backpropDurationIndvidual = backpropDuration/experimentValue,
+     reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
+ ggplot(aes(genomeNodeSizesMean, reproductionDurationIndividual, color=as.factor(experimentValue)) )+
+ geom_point() +
+  ylim(0, 0.003) +
+  ggtitle("Reproduction duration against num nodes - Iris")
+
+genRecords %>%
+  filter(dataset=='breast-cancer') %>%
+ mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
+     backpropDurationIndvidual = backpropDuration/experimentValue,
+     reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
+ ggplot(aes(genomeNodeSizesMean, reproductionDurationIndividual, color=as.factor(experimentValue)) )+
+ geom_point() +
+  ylim(0, 0.003) +
+  ggtitle("Reproduction duration against num nodes - Breast cancer")
 ```
 ```{r}
 genRecords %>%
-  mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
-         backpropDurationIndvidual = backpropDuration/experimentValue,
-         reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
-  ggplot(aes(genomeNodeSizesMean, backpropDurationIndvidual, color=as.factor(experimentValue)) )+
-  geom_point() +
-  ylim(0, 15)
+  filter(dataset=='iris') %>%
+ mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
+     backpropDurationIndvidual = backpropDuration/experimentValue,
+     reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
+ ggplot(aes(genomeNodeSizesMean, backpropDurationIndvidual, color=as.factor(experimentValue)) )+
+ geom_point() +
+ ylim(0, 15) +
+  ggtitle("Backpropagation duration against num nodes - Iris")
+
+genRecords %>%
+  filter(dataset=='breast-cancer') %>%
+ mutate(generationDurationPerIndvidual = generationDuration/experimentValue,
+     backpropDurationIndvidual = backpropDuration/experimentValue,
+     reproductionDurationIndividual = reproductionDuration/experimentValue) %>%
+ ggplot(aes(genomeNodeSizesMean, backpropDurationIndvidual, color=as.factor(experimentValue)) )+
+ geom_point() +
+ ylim(0, 70) +
+  ggtitle("Backpropagation duration against num nodes - Breast cancer")
 ```
 
+
+```{r}
+results_iris %>%
+  filter(dataset=='iris') %>%
+ ggplot(aes(x = sepal.width, 
+       y=sepal.length, 
+       color=pred,
+       shape=correct)) +
+ geom_point() + 
+ facet_grid(experimentValue ~ experimentIteration)
+
+```
+
+```{r}
+results_iris %>%
+  filter(dataset=='iris') %>%
+ ggplot(aes(x = petal.length, 
+       y=petal.width, 
+       color=pred,
+       shape=correct)) +
+ geom_point() + 
+ facet_grid(experimentValue ~ experimentIteration)
+```
+
+```{r}
+genRecords %>%
+  filter(dataset=='iris') %>%
+ group_by(experimentValue,
+      experimentIteration) %>%
+ summarise(max(generation))
+```
+```{r}
+results_iris %>%
+ group_by(experimentValue,
+      experimentIteration) %>%
+ summarise(mean(correct))
+```
+
+
+```{r}
+results_iris %>%
+ filter(experimentValue == 100,
+     experimentIteration == 1) %>%
+ ggplot(aes(x = petal.length, 
+       y=petal.width, 
+       color=pred,
+       shape=as.factor(X1))) +
+ geom_point() 
+```
+```{r}
+results_iris %>%
+ filter(experimentValue == 100,
+     experimentIteration == 1) %>%
+ ggplot(aes(x = sepal.width, 
+       y=sepal.length, 
+       shape=correct,
+       color=pred)) +
+ geom_point() 
+```
+
+```{r}
+results_iris %>%
+ filter(experimentValue == 100,
+     experimentIteration == 1) %>%
+ select(contains('sepal'),
+     contains('petal'),
+     pred,
+     correct, 
+     X1) %>%
+ ggpairs(aes(color=as.factor(X1), 
+       shape=correct), 
+     size=1,
+     columns=1:4)
+```
+
+```{r}
+results_iris %>%
+  View
+
+```
+
+```{r}
+iris_dbs <- read.csv('./../data/processed/iris-100-1-dbs.csv') %>%
+  mutate(
+     preds = gsub("\\[", "", preds),
+     preds = gsub("\\]", "", preds),
+     preds = gsub("  ", " ", preds)
+     ) %>%
+ separate(preds,c('p0',
+ 'p1',
+ 'p2'), sep=", ", remove = FALSE) %>%
+ mutate(
+  p0 = as.numeric(p0),
+  p1 = as.numeric(p1),
+  p2 = as.numeric(p2),
+  maxPred = pmax(p0, p1, p2),
+  pred = case_when(p0 == maxPred ~ 0,
+           p1 == maxPred ~ 1,
+           p2 == maxPred ~ 2),
+  pred = as.factor(pred)) %>%
+  select(-X)
+
+```
+
+```{r}
+iris_dbs %>%
+  glimpse()
+```
+
+```{r}
+iris_dbs %>%
+ ggpairs(aes(color=pred, 
+       shape=pred), 
+     size=1,
+     columns=1:4)
+```
+
+```{r}
+genRecords %>%
+  filter(dataset=='iris') %>%
+  group_by(experimentIteration,
+           experimentValue
+           ) %>%
+  summarise(mean(fitnessSD))
+```
+
+# Look at Breast Cancer Results
+
+```{r}
+results_bc %>%
+  group_by(experimentValue,
+           experimentIteration) %>%
+  summarise(MSE = mean((X2-X1)^2)) %>%
+  View
+```
+
+
+```{r}
+
+svg("myPlotMatrix.svg", height = 100, width = 100)
+
+g <- results_bc %>%
+ filter(experimentValue == 100,
+     experimentIteration == 3) %>%
+ select( 'mean radius', 'mean texture', 'mean perimeter', 'mean area',
+       'mean smoothness', 'mean compactness', 'mean concavity',
+       'mean concave points', 'mean symmetry', 'mean fractal dimension',
+       'radius error', 'texture error', 'perimeter error', 'area error',
+       'smoothness error', 'compactness error', 'concavity error',
+       'concave points error', 'symmetry error',
+       'fractal dimension error', 'worst radius', 'worst texture',
+       'worst perimeter', 'worst area', 'worst smoothness',
+       'worst compactness', 'worst concavity', 'worst concave points',
+       'worst symmetry', 'worst fractal dimension', X1, X2, correct) %>%
+ ggpairs(aes(color=as.factor(X1), 
+       shape=correct), 
+     size=1
+     )
+print(g)
+dev.off()
+
+```
 
