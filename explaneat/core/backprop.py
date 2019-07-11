@@ -14,7 +14,7 @@ import copy
 def tt(num):
     USE_CUDA = torch.cuda.is_available()
     # USE_CUDA = False
-    device = torch.device("cuda" if USE_CUDA else "cpu")
+    device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
     # if torch.cuda.is_available():
         # return nn.Parameter(torch.tensor([float(num)], requires_grad=True).cuda())
@@ -159,7 +159,7 @@ class NeatNet():
 
         USE_CUDA = torch.cuda.is_available()
         # USE_CUDA = False
-        device = torch.device("cuda" if USE_CUDA else "cpu")
+        device = torch.device("cuda:1" if USE_CUDA else "cpu")
         if not type(xs) is torch.Tensor:
             xs = torch.tensor(xs).to(device)
         if not type(ys) is torch.Tensor:
