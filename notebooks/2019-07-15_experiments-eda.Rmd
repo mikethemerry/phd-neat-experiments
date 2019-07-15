@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
+library(jsonlite)
 library("GGally")           # Load GGally package
 
 genRecords <- read.csv('./../data/processed/generationRecords.csv') 
@@ -21,6 +22,8 @@ genRecords <- genRecords %>% as_tibble() %>%
  )
 
 results_raw <- read.csv('./../data/processed/results.csv')
+
+
 
 results_iris <- results_raw %>% filter(dataset== 'iris') %>% as_tibble() %>%
  mutate(X0 = gsub("\\[", "", X0),
@@ -50,9 +53,26 @@ results_iris <- results_raw %>% filter(dataset== 'iris') %>% as_tibble() %>%
   maxPred = pmax(p0, p1, p2),
   pred = case_when(p0 == maxPred ~ 0,
            p1 == maxPred ~ 1,
-           p2 == maxPred ~ 2),
-  pred = as.factor(pred),
-  correct = pred == X1)
+           p2 == maxPred ~ 2))
+
+
+iris_dataset <- results_iris %>%
+  filter(experimentType == 'population',
+         experimentValue == 5,
+         experimentIteration == 0) %>%
+  select(contains('sepal'),
+         contains('petal'),
+         X1,
+         X)
+
+results_iris <- results_iris %>%
+  select(-X1, 
+         -contains('sepal'),
+         -contains('petal')) %>%
+  left_join(iris_dataset, by='X') %>%
+  mutate(
+  correct = pred == X1,
+  pred = as.factor(pred))
 
 
 numericcharacters <- function(x) {
@@ -84,18 +104,34 @@ results_bc <- results_raw %>% filter(dataset== 'breast-cancer') %>% as_tibble() 
        'worst compactness', 'worst concavity', 'worst concave points',
        'worst symmetry', 'worst fractal dimension'), sep=" ", remove = FALSE) %>%
   mutate_if(numericcharacters,as.numeric)
+
 ```
 ```{r}
 results_iris %>% glimpse()
 ```
 
+
+
+
 ```{r}
-results_bc %>% glimpse()
+results_iris %>%
+  filter(experimentType == 'epochs') %>%
+  glimpse()
+```
+
+```{r}
+results_iris %>%
+  group_by(experimentType,
+           experimentValue,
+           experimentIteration) %>%
+  summarise(n=n(),
+            accuracy = mean(correct)) %>%
+  View
 ```
 
 
 ```{r}
-
+results_bc %>% glimpse()
 ```
 
 
@@ -115,7 +151,7 @@ genRecords %>%
       backpropDurationSD = sd(backpropDuration/experimentValue)) %>%
  ggplot(aes(experimentValue, backpropDurationMean)) +
  geom_point() + 
- ylim(0, 10) +
+ ylim(0, 25) +
   ggtitle("BP Duration against population size - Iris")
 
 
@@ -128,7 +164,7 @@ genRecords %>%
       backpropDurationSD = sd(backpropDuration/experimentValue)) %>%
  ggplot(aes(experimentValue, backpropDurationMean)) +
  geom_point() + 
- ylim(0, 45)+
+ ylim(0, 100)+
   ggtitle("BP Duration against population size - Breast Cancer")
 ```
 ```{r}
@@ -479,30 +515,96 @@ results_bc %>%
             accuracy = mean(correct))
 ```
 
+```{r}
+genRecords %>%
+  View
+```
 
 ```{r}
-
-svg("myPlotMatrix.svg", height = 100, width = 100)
-
-g <- results_bc %>%
- filter(experimentValue == 100,
-     experimentIteration == 3) %>%
- select( 'mean radius', 'mean texture', 'mean perimeter', 'mean area',
-       'mean smoothness', 'mean compactness', 'mean concavity',
-       'mean concave points', 'mean symmetry', 'mean fractal dimension',
-       'radius error', 'texture error', 'perimeter error', 'area error',
-       'smoothness error', 'compactness error', 'concavity error',
-       'concave points error', 'symmetry error',
-       'fractal dimension error', 'worst radius', 'worst texture',
-       'worst perimeter', 'worst area', 'worst smoothness',
-       'worst compactness', 'worst concavity', 'worst concave points',
-       'worst symmetry', 'worst fractal dimension', X1, X2, correct) %>%
- ggpairs(aes(color=as.factor(X1), 
-       shape=correct), 
-     size=1
-     )
-print(g)
-dev.off()
-
+genRecords %>%
+  filter(experimentType == 'epochs') %>%
+  ggplot(aes(generation, 1/fitnessMean, color=as.factor(experimentIteration))) +
+  geom_point() + 
+  geom_line() +
+  facet_grid(experimentValue~.) + 
+  ylim(0, 1.3)
 ```
+
+```{r}
+results_iris %>%
+  group_by(experimentType,
+           experimentValue,
+           experimentIteration) %>%
+  summarise(n=n(), 
+            accuracy = mean(correct)) %>%
+  View('Iris Results')
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  ggplot(aes(generation)) +
+  geom_line(aes(y=1/fitnessMean)) +
+  facet_grid(experimentIteration ~ experimentValue)
+```
+
+```{r}
+genRecords %>%
+  filter(experimentType == 'epochs') %>%
+  select(contains('itness'),
+         -fitnesses)
+```
+
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  ggplot(aes(generation)) +
+  geom_line(aes(y=fitnessMax)) +
+  facet_grid(experimentIteration ~ experimentValue) +
+  ylim(1.2, 1.6) +
+  geom_hline(yintercept = 1.4,
+             alpha=0.4,
+             color='red') +
+  geom_hline(yintercept = 1.5,
+             alpha=0.4,
+             color='red')
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  ggplot(aes(generation, group=experimentIteration, color=as.factor(experimentIteration))) +
+  geom_line(aes(y=fitnessMax)) +
+  facet_grid( .~ experimentValue) +
+  ylim(1.2, 1.6) +
+  geom_hline(yintercept = 1.4,
+             alpha=0.4,
+             color='red') +
+  geom_hline(yintercept = 1.5,
+             alpha=0.4,
+             color='red')
+```
+
+```{r}
+genRecords %>%
+  filter(experimentType == 'epochs') %>%
+  group_by(experimentValue,
+           experimentIteration,
+           generation) %>%
+  summarise(maxFit = max(fitnessMax),
+            meanFit = mean(fitnessMean),
+            minFit = min(fitnessMin)) %>%
+  filter(maxFit > 1.5) %>%
+  group_by(experimentValue,
+           experimentIteration) %>%
+  summarise(minGeneration = min(generation),
+            maxFit = max(maxFit)) %>%
+  View
+```
+
+
 
