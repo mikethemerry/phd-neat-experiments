@@ -12,8 +12,8 @@ import copy
 
 
 def tt(num):
-    USE_CUDA = torch.cuda.is_available()
-    # USE_CUDA = False
+    # USE_CUDA = torch.cuda.is_available()
+    USE_CUDA = False
     device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
     # if torch.cuda.is_available():
@@ -72,8 +72,8 @@ class NeatNet():
         self.order_of_nodes = self.get_order_of_nodes()
 
 
-        USE_CUDA = torch.cuda.is_available()
-        # USE_CUDA = False
+        # USE_CUDA = torch.cuda.is_available()
+        USE_CUDA = False
         device = torch.device("cuda:1" if USE_CUDA else "cpu")
         
         self.optimizer = optim.Adadelta(self.params, lr=1.5)
@@ -118,8 +118,8 @@ class NeatNet():
     def activateNode(self, node):
         
         
-        USE_CUDA = torch.cuda.is_available()
-        # USE_CUDA = False
+        # USE_CUDA = torch.cuda.is_available()
+        USE_CUDA = False
         device = torch.device("cuda:1" if USE_CUDA else "cpu")
         
         
@@ -164,8 +164,8 @@ class NeatNet():
 
     def optimise(self, xs, ys, nEpochs = 100):
 
-        USE_CUDA = torch.cuda.is_available()
-        # USE_CUDA = False
+        # USE_CUDA = torch.cuda.is_available()
+        USE_CUDA = False
         device = torch.device("cuda:1" if USE_CUDA else "cpu")
         if not type(xs) is torch.Tensor:
             xs = torch.tensor(xs).to(device)
