@@ -74,7 +74,7 @@ class NeatNet():
 
         USE_CUDA = torch.cuda.is_available()
         # USE_CUDA = False
-        device = torch.device("cuda" if USE_CUDA else "cpu")
+        device = torch.device("cuda:1" if USE_CUDA else "cpu")
         
         self.optimizer = optim.Adadelta(self.params, lr=1.5)
         self.criterion = criterion.to(device)
@@ -116,6 +116,13 @@ class NeatNet():
         assert self.order_of_nodes is not None
 
     def activateNode(self, node):
+        
+        
+        USE_CUDA = torch.cuda.is_available()
+        # USE_CUDA = False
+        device = torch.device("cuda:1" if USE_CUDA else "cpu")
+        
+        
         vals = [
         ]
         # handler for if the output is not connected
@@ -127,7 +134,7 @@ class NeatNet():
                     if self.genome.connections[connection].enabled:
                         vals.append(self.nodeVals[connection[0]] * self.connections[connection])
 
-        vals.append(torch.tensor(self.genome.nodes[node].bias, requires_grad=True))
+        vals.append(torch.tensor(self.genome.nodes[node].bias, requires_grad=True).to(device))
         mySum = sum(vals)
         return torch.sigmoid(5.0*mySum)
 
