@@ -606,5 +606,19 @@ genRecords %>%
   View
 ```
 
+```{r}
+genRecords %>%
+  filter(experimentType == 'epochs') %>%
+  mutate(totalEpochs = generation*experimentValue) %>%
+  ggplot(aes(totalEpochs, 
+             fitnessMax, 
+             group = interaction(experimentValue, experimentIteration),
+             color = as.factor(experimentValue))) +
+  geom_line(alpha = 0.5) +
+  geom_point(alpha = 0.1) +
+  ggthemes::theme_fivethirtyeight()
+```
+
+
 
 

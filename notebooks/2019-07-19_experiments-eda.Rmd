@@ -1,0 +1,355 @@
+---
+title: "EDA of Epochs and GPU"
+author: "MIKE MERRY"
+date: "7/21/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(jsonlite)
+library("GGally")           # Load GGally package
+
+genRecords <- read.csv('./../data/processed/generationRecords.csv') 
+genRecords <- genRecords %>% as_tibble() %>%
+ mutate(generationDuration = generationEndTime - generationStartTime,
+     reproductionDuration = reproductionEndTime - reproductionStartTime,
+     backpropDuration = backpropEndTime - backpropStartTime
+ )
+
+results_raw <- read.csv('./../data/processed/results.csv')
+
+
+
+results_iris <- results_raw %>% filter(dataset== 'iris') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2)
+     ) %>%
+ separate(X0,c('sepal.length',
+ 'sepal.width',
+ 'petal.length',
+ 'petal.width'), sep=" ", remove = FALSE) %>%
+ separate(X2,c('p0',
+ 'p1',
+ 'p2'), sep=", ", remove = FALSE) %>%
+ mutate(
+  sepal.length = as.numeric(sepal.length),
+  sepal.width = as.numeric(sepal.width),
+  petal.length = as.numeric(petal.length),
+  petal.width = as.numeric(petal.width),
+  p0 = as.numeric(p0),
+  p1 = as.numeric(p1),
+  p2 = as.numeric(p2),
+  maxPred = pmax(p0, p1, p2),
+  pred = case_when(p0 == maxPred ~ 0,
+           p1 == maxPred ~ 1,
+           p2 == maxPred ~ 2))
+
+
+iris_dataset <- results_iris %>%
+  filter(experimentType == 'population',
+         experimentValue == 5,
+         experimentIteration == 0) %>%
+  select(contains('sepal'),
+         contains('petal'),
+         X1,
+         X)
+
+results_iris <- results_iris %>%
+  select(-X1, 
+         -contains('sepal'),
+         -contains('petal')) %>%
+  left_join(iris_dataset, by='X') %>%
+  mutate(
+  correct = pred == X1,
+  pred = as.factor(pred))
+
+
+numericcharacters <- function(x) {
+  !any(is.na(suppressWarnings(as.numeric(x)))) & is.character(x)
+}
+
+results_bc <- results_raw %>% filter(dataset== 'breast-cancer') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2),
+     X2 = as.numeric(X2),
+     pred = round(X2),
+     correct = pred==X1
+     ) %>%
+ separate(X0,c('mean radius', 'mean texture', 'mean perimeter', 'mean area',
+       'mean smoothness', 'mean compactness', 'mean concavity',
+       'mean concave points', 'mean symmetry', 'mean fractal dimension',
+       'radius error', 'texture error', 'perimeter error', 'area error',
+       'smoothness error', 'compactness error', 'concavity error',
+       'concave points error', 'symmetry error',
+       'fractal dimension error', 'worst radius', 'worst texture',
+       'worst perimeter', 'worst area', 'worst smoothness',
+       'worst compactness', 'worst concavity', 'worst concave points',
+       'worst symmetry', 'worst fractal dimension'), sep=" ", remove = FALSE) %>%
+  mutate_if(numericcharacters,as.numeric)
+
+```
+
+```{r}
+results_iris%>%
+  filter(experimentType == 'epochs') %>%
+  glimpse
+```
+# Can this achieve good predictive performance?
+
+## IRIS
+On the Iris dataset, best performances are >95%, and best I've seen (overfit?) is 98%
+```{r}
+results_iris %>%
+  group_by(experimentType,
+           experimentValue,
+           experimentIteration) %>%
+  summarise(accuracy = mean(correct)) %>%
+  arrange(-accuracy)
+```
+For the different experiments, the key thing is that `epochs` had a much longer run time for nGenerations
+```{r}
+results_iris %>%
+  group_by(experimentType,
+           experimentValue,
+           experimentIteration) %>%
+  summarise(accuracy = mean(correct)) %>%
+  ggplot(aes(experimentType, accuracy)) +
+  geom_boxplot() +
+  ylim(0, 1)
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris') %>%
+  group_by(experimentType,
+           experimentValue, 
+           experimentIteration) %>%
+  summarise(maxFitness = max(fitnessMax),
+            maxMeanFitness = max(fitnessMean),
+            nGenerations = max(generation)) %>%
+  ggplot(aes(nGenerations, 
+             maxFitness,
+             group=nGenerations)) +
+  geom_boxplot()
+```
+```{r}
+genRecords %>%
+  filter(dataset == 'iris') %>%
+  ggplot(aes(generation, 
+             fitnessMean, 
+             color=interaction(experimentType, experimentValue), 
+             group = interaction(experimentType, experimentValue, experimentIteration))) +
+  geom_point() +
+  geom_line() +
+  facet_grid(experimentType~.)
+```
+So who was the best performance?
+```{r}
+genRecords %>%
+  filter(dataset == 'iris', 
+         experimentType == 'epochs',
+         experimentValue %in% c(10),
+         experimentIteration %in% c(3)) %>%
+  summarise(max(fitnessMax))
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris', 
+         experimentType == 'epochs',
+         experimentValue %in% c(10),
+         experimentIteration %in% c(3)) %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+
+## Breast Cancer
+
+Do we see the same trends?
+
+```{r}
+genRecords %>%
+  filter(dataset == 'breast-cancer') %>%
+  ggplot(aes(generation, 
+             fitnessMean, 
+             color=interaction(experimentType, experimentValue), 
+             group = interaction(experimentType, experimentValue, experimentIteration))) +
+  geom_point() +
+  geom_line() +
+  facet_grid(experimentType~.)
+```
+Yes, primarily that we need large enough population. Unfortunately, epochs experiment failed for `breast-cancer`, so we can't see the results there.
+
+```{r}
+genRecords %>%
+  filter(dataset == 'breast-cancer') %>%
+  ggplot(aes(generation, 
+             fitnessMean, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+Yes, similar patterns
+
+# Does num. epochs/generation change training?
+
+The question is, whether or not the epochs are critical for training, or whether or not generations are more important.
+
+All experiments were with the same number of generations, varying number of epochs
+```{r}
+results_iris %>%
+  filter(experimentType == 'epochs') %>%
+  group_by(experimentValue,
+           experimentIteration) %>%
+  summarise(accuracy = mean(correct)) %>%
+  ggplot(aes(experimentValue, accuracy)) +
+  geom_point() +
+  xlim(0, 150) +
+  ylim(0, 1)
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  group_by(experimentIteration, experimentValue) %>%
+  summarise(fitness = max(fitnessMax))
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  group_by(experimentIteration, experimentValue) %>%
+  summarise(fitness = max(fitnessMax)) %>%
+  ggplot(aes(experimentValue, fitness)) +
+  geom_point() +
+  ylim(1, 1.6)
+
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  ggplot(aes(generation, fitnessMax, color=as.factor(experimentValue), group = generation)) +
+  geom_boxplot() +
+  facet_grid(experimentValue~.)
+
+```
+Really, there is no difference from the number of epochs. Generations (and topological variation) is the key element
+
+# How do they train?
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris', 
+         experimentType == 'epochs',
+         experimentValue %in% c(10, 50),
+         experimentIteration %in% c(0, 3, 4)) %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+```{r}
+genRecords %>%
+  filter(dataset == 'iris', 
+         experimentType == 'epochs',
+         experimentValue %in% c(10),
+         experimentIteration %in% c(3)) %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+
+# What about speed of training?
+
+```{r}
+
+genRecords %>%
+ group_by(dataset,
+          experimentType,
+      experimentValue,
+      generation) %>%
+  filter(dataset=='iris') %>%
+ summarise(backpropDurationMean = mean(backpropDuration),
+      backpropDurationSD = sd(backpropDuration)) %>%
+ ggplot(aes(experimentValue, backpropDurationMean)) +
+ geom_point() + 
+  facet_grid(experimentType~.) +
+    geom_smooth(method='lm',formula=y~x) +
+  ggtitle("BP Duration against population size - Iris")
+```
+
+## GPU vs CPU
+
+```{r}
+
+genRecords %>%
+ group_by(dataset,
+          experimentType,
+      experimentValue,
+      generation) %>%
+  filter(experimentType %in% c('population', 'populationgpu')) %>%
+ summarise(backpropDurationMean = mean(backpropDuration),
+      backpropDurationSD = sd(backpropDuration)) %>%
+ ggplot(aes(experimentValue, 
+            backpropDurationMean,
+            color=experimentType)) +
+ geom_point() + 
+  facet_grid(dataset~.) +
+    geom_smooth(method='lm',formula=y~x) +
+  ggtitle("BP Duration against population size - Iris")
+```
+GPU is significantly sllower on both datasets, but still looking good with a linear relationship
+
+# Next experiments
+
+* Population size
+* Synthetic View
+
+
+
+
+
+
