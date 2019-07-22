@@ -51,11 +51,18 @@ def main(input_filepath, output_filepath):
                 os.path.join(runDir, generationRecordFileName),
                 columnsToAdd = runDetails
                 )
+            if 'fitnesses' in generationRecordsDF.columns:
+                generationRecordsDF['fitnessMax'] = generationRecordsDF['fitnesses'].apply(
+                    lambda x: max(x)
+                )
+                generationRecordsDF['fitnessMin'] = generationRecordsDF['fitnesses'].apply(
+                    lambda x: min(x)
+                )
+
             if generationRecords is not None:
                 generationRecords = generationRecords.append(generationRecordsDF)
             else:
                 generationRecords = generationRecordsDF
-
             # Get ersults
             resultsDF = parse_results(
                 os.path.join(runDir, resultsFileName),
@@ -65,7 +72,6 @@ def main(input_filepath, output_filepath):
                 results = results.append(resultsDF)
             else:
                 results = resultsDF
-
 
     ## Output to ../processed
     generationRecords.to_csv(os.path.join(output_filepath, 'generationRecords.csv'))
