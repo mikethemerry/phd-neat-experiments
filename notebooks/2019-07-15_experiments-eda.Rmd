@@ -217,7 +217,7 @@ genRecords %>%
        color=as.factor(experimentValue), 
        group=experimentValue)) +
   geom_point() +
-  ylim(0, 8) +
+  ylim(0, 15) +
   geom_line()+
   ggtitle("Num nodes against generation - Breast Cancer")
 ```
@@ -234,7 +234,7 @@ genRecords %>%
  ggplot(aes(generation, backpropDurationMean, group=experimentValue, color=as.factor(experimentValue))) +
  geom_point() + 
  geom_line() + 
- ylim(0, 10) +
+ # ylim(0, 10) +
   ggtitle("Backprop duration against generation - Iris")
 
 
@@ -248,7 +248,7 @@ genRecords %>%
  ggplot(aes(generation, backpropDurationMean, group=experimentValue, color=as.factor(experimentValue))) +
  geom_point() + 
  geom_line() + 
- ylim(0, 50) +
+ # ylim(0, 50) +
   ggtitle("Backprop duration against generation - Breast Cancer")
 ```
 

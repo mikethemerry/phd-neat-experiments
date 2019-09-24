@@ -1,0 +1,216 @@
+---
+title: "Long Epochs EDA"
+author: "MIKE MERRY"
+date: "6/28/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(jsonlite)
+library(GGally)           # Load GGally package
+library(stargazer)
+
+
+genRecords_raw <- read.csv('./../data/processed/2019-08-27/generationRecords.csv') 
+genRecords <- genRecords_raw %>% as_tibble() %>%
+ mutate(generationDuration = generationEndTime - generationStartTime,
+     reproductionDuration = reproductionEndTime - reproductionStartTime,
+     backpropDuration = backpropEndTime - backpropStartTime
+ )
+
+genRecords <- genRecords %>%
+  left_join(
+    genRecords %>%
+      group_by(dataset,
+               experimentType,
+               experimentValue,
+               experimentIteration) %>%
+      summarise(experimentStartTime = min(generationStartTime),
+                experimentMinMaxFitness = min(fitnessMean)),
+    by=c("dataset", "experimentValue", "experimentIteration", "experimentType")
+    )
+
+results_raw <- read.csv('./../data/processed/2019-08-27/results.csv')
+
+
+
+results_iris <- results_raw %>% filter(dataset== 'iris') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2)
+     ) %>%
+ separate(X0,c('sepal.length',
+ 'sepal.width',
+ 'petal.length',
+ 'petal.width'), sep=" ", remove = FALSE) %>%
+ separate(X2,c('p0',
+ 'p1',
+ 'p2'), sep=", ", remove = FALSE) %>%
+ mutate(
+  sepal.length = as.numeric(sepal.length),
+  sepal.width = as.numeric(sepal.width),
+  petal.length = as.numeric(petal.length),
+  petal.width = as.numeric(petal.width),
+  p0 = as.numeric(p0),
+  p1 = as.numeric(p1),
+  p2 = as.numeric(p2),
+  maxPred = pmax(p0, p1, p2),
+  pred = case_when(p0 == maxPred ~ 0,
+           p1 == maxPred ~ 1,
+           p2 == maxPred ~ 2))
+
+
+iris_dataset <- results_iris %>%
+  filter(experimentType == 'population',
+         experimentValue == 5,
+         experimentIteration == 0) %>%
+  select(contains('sepal'),
+         contains('petal'),
+         X1,
+         X)
+
+results_iris <- results_iris %>%
+  select(-X1, 
+         -contains('sepal'),
+         -contains('petal')) %>%
+  left_join(iris_dataset, by='X') %>%
+  mutate(
+  correct = pred == X1,
+  pred = as.factor(pred))
+
+
+numericcharacters <- function(x) {
+  !any(is.na(suppressWarnings(as.numeric(x)))) & is.character(x)
+}
+
+results_bc <- results_raw %>% filter(dataset== 'breast-cancer') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2),
+     X2 = as.numeric(X2),
+     pred = round(X2),
+     correct = pred==X1
+     ) %>%
+ separate(X0,c('mean radius', 'mean texture', 'mean perimeter', 'mean area',
+       'mean smoothness', 'mean compactness', 'mean concavity',
+       'mean concave points', 'mean symmetry', 'mean fractal dimension',
+       'radius error', 'texture error', 'perimeter error', 'area error',
+       'smoothness error', 'compactness error', 'concavity error',
+       'concave points error', 'symmetry error',
+       'fractal dimension error', 'worst radius', 'worst texture',
+       'worst perimeter', 'worst area', 'worst smoothness',
+       'worst compactness', 'worst concavity', 'worst concave points',
+       'worst symmetry', 'worst fractal dimension'), sep=" ", remove = FALSE) %>%
+  mutate_if(numericcharacters,as.numeric)
+
+
+
+results_sv <- results_raw %>% filter(dataset== 'synthview') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2),
+     X2 = as.numeric(X2),
+     pred = round(X2),
+     correct = pred==X1
+     ) 
+
+```
+
+```{r}
+genRecords %>%
+  head
+```
+
+
+```{r}
+ genRecords %>%
+  mutate(experimentRunTime = generationEndTime - experimentStartTime) %>%
+  filter(dataset=='iris') %>%
+  # filter(experimentType == 'longsepochs') %>% 
+  ggplot(aes(generation, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentValue, experimentIteration))) + 
+  geom_point(alpha=0.3) + 
+  geom_line(alpha=0.3)
+```
+```{r}
+genRecords %>%
+    filter(dataset=='iris') %>%
+
+  ggplot(aes(as.factor(generation), fitnessMax)) +
+  geom_boxplot()
+```
+
+```{r}
+bakeoff <- read.csv('./../data/model_bake_off.csv')
+
+```
+```{r}
+bakeoff %>%
+  select(-Iris..accuracy.)  %>%
+  reshape2::melt(id.var='Algorithm') %>%
+  friedman.test(value ~ Algorithm | variable, .)
+
+```
+```{r}
+friedman.test(bakeoff)
+```
+
+```{r}
+WineTasting <- data.frame(
+		  Taste = c(5.40, 5.50, 5.55,
+					5.85, 5.70, 5.75,
+					5.20, 5.60, 5.50,
+					5.55, 5.50, 5.40,
+					5.90, 5.85, 5.70,
+					5.45, 5.55, 5.60,
+					5.40, 5.40, 5.35,
+					5.45, 5.50, 5.35,
+					5.25, 5.15, 5.00,
+					5.85, 5.80, 5.70,
+					5.25, 5.20, 5.10,
+					5.65, 5.55, 5.45,
+					5.60, 5.35, 5.45,
+					5.05, 5.00, 4.95,
+					5.50, 5.50, 5.40,
+					5.45, 5.55, 5.50,
+					5.55, 5.55, 5.35,
+					5.45, 5.50, 5.55,
+					5.50, 5.45, 5.25,
+					5.65, 5.60, 5.40,
+					5.70, 5.65, 5.55,
+					6.30, 6.30, 6.25),
+					Wine = factor(rep(c("Wine A", "Wine B", "Wine C"), 22)),
+					Taster = factor(rep(1:22, rep(3, 22))))
+ WineTasting
+ 
+```
+
+
+
+
+
+

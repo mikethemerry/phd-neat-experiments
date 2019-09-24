@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+    # -*- coding: utf-8 -*-
 import click
 import logging
 from pathlib import Path
@@ -40,17 +40,26 @@ def main(input_filepath, output_filepath):
         experimentRuns = os.listdir(experimentDir)
 
         for run in experimentRuns:
+            
             logger.info('parsing {}'.format(run))
+
+            if(run[0] == '.'):
+                logger.info('not a valid path, skipping')
+                continue
             runDir = os.path.join(experimentDir, run)
 
             runDetails = parse_experiment_filename(run)
             runDetails['dataset'] = experiment
 
             # Get generation records
-            generationRecordsDF = parse_generation_records(
-                os.path.join(runDir, generationRecordFileName),
-                columnsToAdd = runDetails
-                )
+            try:
+                generationRecordsDF = parse_generation_records(
+                    os.path.join(runDir, generationRecordFileName),
+                    columnsToAdd = runDetails
+                    )
+            except FileNotFoundError:
+                logger.warning('File not found, skipping %s' % runDir)
+                continue
             if 'fitnesses' in generationRecordsDF.columns:
                 generationRecordsDF['fitnessMax'] = generationRecordsDF['fitnesses'].apply(
                     lambda x: max(x)
@@ -74,6 +83,8 @@ def main(input_filepath, output_filepath):
                 results = resultsDF
 
     ## Output to ../processed
+    if not os.path.exists(output_filepath):
+        os.makedirs(output_filepath)
     generationRecords.to_csv(os.path.join(output_filepath, 'generationRecords.csv'))
     results.to_csv(os.path.join(output_filepath, 'results.csv'))
 

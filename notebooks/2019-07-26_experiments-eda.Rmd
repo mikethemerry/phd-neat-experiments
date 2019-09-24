@@ -1,0 +1,689 @@
+---
+title: "Experiments EDA with synthview"
+author: "MIKE MERRY"
+date: "7/26/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(jsonlite)
+library(GGally)           # Load GGally package
+library(stargazer)
+
+
+genRecords_raw <- read.csv('./../data/processed/2019-07-26/generationRecords.csv') 
+genRecords <- genRecords_raw %>% as_tibble() %>%
+ mutate(generationDuration = generationEndTime - generationStartTime,
+     reproductionDuration = reproductionEndTime - reproductionStartTime,
+     backpropDuration = backpropEndTime - backpropStartTime
+ )
+
+genRecords <- genRecords %>%
+  left_join(
+    genRecords %>%
+      group_by(dataset,
+               experimentType,
+               experimentValue,
+               experimentIteration) %>%
+      summarise(experimentStartTime = min(generationStartTime),
+                experimentMinMaxFitness = min(fitnessMean)),
+    by=c("dataset", "experimentValue", "experimentIteration", "experimentType")
+    )
+
+results_raw <- read.csv('./../data/processed/2019-07-26/results.csv')
+
+
+
+results_iris <- results_raw %>% filter(dataset== 'iris') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2)
+     ) %>%
+ separate(X0,c('sepal.length',
+ 'sepal.width',
+ 'petal.length',
+ 'petal.width'), sep=" ", remove = FALSE) %>%
+ separate(X2,c('p0',
+ 'p1',
+ 'p2'), sep=", ", remove = FALSE) %>%
+ mutate(
+  sepal.length = as.numeric(sepal.length),
+  sepal.width = as.numeric(sepal.width),
+  petal.length = as.numeric(petal.length),
+  petal.width = as.numeric(petal.width),
+  p0 = as.numeric(p0),
+  p1 = as.numeric(p1),
+  p2 = as.numeric(p2),
+  maxPred = pmax(p0, p1, p2),
+  pred = case_when(p0 == maxPred ~ 0,
+           p1 == maxPred ~ 1,
+           p2 == maxPred ~ 2))
+
+
+iris_dataset <- results_iris %>%
+  filter(experimentType == 'population',
+         experimentValue == 5,
+         experimentIteration == 0) %>%
+  select(contains('sepal'),
+         contains('petal'),
+         X1,
+         X)
+
+results_iris <- results_iris %>%
+  select(-X1, 
+         -contains('sepal'),
+         -contains('petal')) %>%
+  left_join(iris_dataset, by='X') %>%
+  mutate(
+  correct = pred == X1,
+  pred = as.factor(pred))
+
+
+numericcharacters <- function(x) {
+  !any(is.na(suppressWarnings(as.numeric(x)))) & is.character(x)
+}
+
+results_bc <- results_raw %>% filter(dataset== 'breast-cancer') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2),
+     X2 = as.numeric(X2),
+     pred = round(X2),
+     correct = pred==X1
+     ) %>%
+ separate(X0,c('mean radius', 'mean texture', 'mean perimeter', 'mean area',
+       'mean smoothness', 'mean compactness', 'mean concavity',
+       'mean concave points', 'mean symmetry', 'mean fractal dimension',
+       'radius error', 'texture error', 'perimeter error', 'area error',
+       'smoothness error', 'compactness error', 'concavity error',
+       'concave points error', 'symmetry error',
+       'fractal dimension error', 'worst radius', 'worst texture',
+       'worst perimeter', 'worst area', 'worst smoothness',
+       'worst compactness', 'worst concavity', 'worst concave points',
+       'worst symmetry', 'worst fractal dimension'), sep=" ", remove = FALSE) %>%
+  mutate_if(numericcharacters,as.numeric)
+
+
+
+results_sv <- results_raw %>% filter(dataset== 'synthview') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2),
+     X2 = as.numeric(X2),
+     pred = round(X2),
+     correct = pred==X1
+     ) 
+
+```
+
+```{r}
+results_bc %>%
+  head
+```
+
+
+```{r}
+results_sv %>%
+  head
+```
+
+
+```{r}
+results_iris%>%
+  filter(experimentType == 'epochs') %>%
+  glimpse
+```
+# Can this achieve good predictive performance?
+
+## IRIS
+On the Iris dataset, best performances are >95%, and best I've seen (overfit?) is 98%
+```{r}
+results_iris %>%
+  group_by(experimentType,
+           experimentValue,
+           experimentIteration) %>%
+  summarise(accuracy = mean(correct)) %>%
+  arrange(-accuracy) %>%
+  View
+```
+For the different experiments, the key thing is that `epochs` had a much longer run time for nGenerations
+```{r}
+results_iris %>%
+  group_by(experimentType,
+           experimentValue,
+           experimentIteration) %>%
+  summarise(accuracy = mean(correct)) %>%
+  ggplot(aes(experimentType, accuracy)) +
+  geom_boxplot() +
+  ylim(0, 1)
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris') %>%
+  group_by(experimentType,
+           experimentValue, 
+           experimentIteration) %>%
+  summarise(maxFitness = max(fitnessMax),
+            maxMeanFitness = max(fitnessMean),
+            nGenerations = max(generation)) %>%
+  ggplot(aes(nGenerations, 
+             maxFitness,
+             group=nGenerations)) +
+  geom_boxplot()
+```
+```{r}
+genRecords %>%
+  filter(dataset == 'iris') %>%
+  ggplot(aes(generation, 
+             fitnessMean, 
+             color=interaction(experimentType, experimentValue), 
+             group = interaction(experimentType, experimentValue, experimentIteration))) +
+  geom_point() +
+  geom_line() +
+  facet_grid(experimentType~.)
+```
+So who was the best performance?
+```{r}
+genRecords %>%
+  filter(dataset == 'iris', 
+         experimentType == 'epochs',
+         experimentValue %in% c(10),
+         experimentIteration %in% c(3)) %>%
+  summarise(max(fitnessMax))
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris', 
+         experimentType == 'epochs',
+         experimentValue %in% c(10),
+         experimentIteration %in% c(3)) %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+
+## Breast Cancer
+
+Do we see the same trends?
+
+```{r}
+genRecords %>%
+  filter(dataset == 'breast-cancer') %>%
+  ggplot(aes(generation, 
+             fitnessMean, 
+             color=interaction(experimentType, experimentValue), 
+             group = interaction(experimentType, experimentValue, experimentIteration))) +
+  geom_point() +
+  geom_line() +
+  facet_grid(experimentType~.)
+```
+Yes, primarily that we need large enough population. Unfortunately, epochs experiment failed for `breast-cancer`, so we can't see the results there.
+
+```{r}
+genRecords %>%
+  filter(dataset == 'breast-cancer') %>%
+  ggplot(aes(generation, 
+             fitnessMean, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+Yes, similar patterns
+
+# Does num. epochs/generation change training?
+
+The question is, whether or not the epochs are critical for training, or whether or not generations are more important.
+
+All experiments were with the same number of generations, varying number of epochs
+```{r}
+results_iris %>%
+  filter(experimentType == 'epochs') %>%
+  group_by(experimentValue,
+           experimentIteration) %>%
+  summarise(accuracy = mean(correct)) %>%
+  ggplot(aes(experimentValue, accuracy)) +
+  geom_point() +
+  xlim(0, 150) +
+  ylim(0, 1)
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  group_by(experimentIteration, experimentValue) %>%
+  summarise(fitness = max(fitnessMax))
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  group_by(experimentIteration, experimentValue) %>%
+  summarise(fitness = max(fitnessMax)) %>%
+  ggplot(aes(experimentValue, fitness)) +
+  geom_point() +
+  ylim(1, 1.6)
+
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris',
+         experimentType == 'epochs') %>%
+  ggplot(aes(generation, fitnessMax, color=as.factor(experimentValue), group = generation)) +
+  geom_boxplot() +
+  facet_grid(experimentValue~.)
+
+```
+Really, there is no difference from the number of epochs. Generations (and topological variation) is the key element
+
+# How do they train?
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris', 
+         experimentType == 'epochs',
+         experimentValue %in% c(10, 50),
+         experimentIteration %in% c(0, 3, 4)) %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+```{r}
+genRecords %>%
+  filter(dataset == 'iris', 
+         experimentType == 'epochs',
+         experimentValue %in% c(10),
+         experimentIteration %in% c(3)) %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentIteration, experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+
+# What about speed of training?
+
+```{r}
+
+genRecords %>%
+ group_by(dataset,
+          experimentType,
+      experimentValue,
+      generation) %>%
+  filter(dataset=='iris') %>%
+ summarise(backpropDurationMean = mean(backpropDuration),
+      backpropDurationSD = sd(backpropDuration)) %>%
+ ggplot(aes(experimentValue, backpropDurationMean)) +
+ geom_point() + 
+  facet_grid(experimentType~.) +
+    geom_smooth(method='lm',formula=y~x) +
+  ggtitle("BP Duration against population size - Iris")
+```
+
+## GPU vs CPU
+
+```{r}
+
+genRecords %>%
+ group_by(dataset,
+          experimentType,
+      experimentValue,
+      generation) %>%
+  filter(experimentType %in% c('population', 'populationgpu')) %>%
+ summarise(backpropDurationMean = mean(backpropDuration),
+      backpropDurationSD = sd(backpropDuration)) %>%
+ ggplot(aes(experimentValue, 
+            backpropDurationMean,
+            color=experimentType)) +
+ geom_point() + 
+  facet_grid(dataset~.) +
+    geom_smooth(method='lm',formula=y~x) +
+  ggtitle("BP Duration against population size - Iris")
+```
+GPU is significantly sllower on both datasets, but still looking good with a linear relationship
+
+# Next experiments
+
+* Population size
+* Synthetic View
+
+
+
+```{r}
+genRecords %>%
+  group_by(dataset,
+           experimentType,
+           experimentValue) %>%
+  filter(!dataset=='breast-cancer') %>%
+  summarise(maxFitness = max(fitnessMax, na.rm = TRUE),
+            maxFitnessSD = sd(fitnessMax, na.rm = TRUE))
+```
+
+```{r}
+genRecords %>%
+  filter(dataset == 'synthview') %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             group = interaction(experimentValue, experimentIteration),
+             color=as.factor(experimentValue))) +
+  geom_point() +
+  geom_line() + 
+  ylim(0.9, 0.95)
+```
+
+```{r}
+results_sv %>%
+  group_by(experimentValue, experimentIteration) %>%
+  summarise(n=n())
+```
+
+
+
+```{r}
+genRecords %>%
+  group_by(dataset) %>%
+  summarise(maxFitness = max(fitnessMax, na.rm = TRUE))
+```
+
+
+# For paper
+
+```{r}
+genRecords %>%
+  filter(dataset == 'iris') %>%
+  group_by(experimentType,
+           dataset) %>%
+  summarise(n=n())
+```
+
+```{r}
+genRecords %>%colnames()
+```
+
+```{r}
+genRecords %>%
+  filter(experimentType == 'population') %>%
+  group_by(dataset,
+           experimentValue) %>%
+  summarise(n=n(),
+            maxMeanFitness = max(fitnessMean),
+            meanFitness = mean(fitnessMean),
+            bpTime = mean(backpropDuration),
+            bpSD = sd(backpropDuration),
+            gaTime = mean(reproductionDuration),
+            gaSD = sd(reproductionDuration),
+            ) %>%
+  mutate_if(is.numeric, round, 3) %>%
+  select(-n) %>%
+  as.tibble() %>%
+  stargazer(., summary = FALSE)
+  
+```
+## Experiment 1
+
+```{r}
+genRecords %>%
+  filter(experimentType == 'population',
+         dataset=='iris') %>%
+  group_by(experimentValue, generation) %>%
+  summarise(maxFit = max(fitnessMean),
+            minFit = min(fitnessMean),
+            meanFit = mean(fitnessMean)) %>%
+  ggplot(aes(generation, 
+             meanFit, 
+             linetype=as.factor(experimentValue),
+             color=as.factor(experimentValue), 
+             group=interaction(experimentValue))) +
+    geom_ribbon(aes(ymin=minFit, ymax=maxFit, fill=as.factor(experimentValue)), alpha=0.3 )+
+  # geom_point() + 
+  geom_line() +
+  labs(x='Generation',
+       y='Fitness',
+       color='Population Size',
+       linetype='Population Size',
+       fill='Population Size')
+
+  ggsave('./../data/processed/aaai_paper/fitness_over_generation_pop_exp_1.pdf', device='pdf', width=5, height=2.5)
+
+```
+
+```{r}
+genRecords %>%
+  mutate(experimentRunTime = generationEndTime - experimentStartTime,
+         fitnessGain = fitnessMean - experimentMinMaxFitness) %>%
+  filter(experimentType == 'population') %>% 
+  group_by(dataset,
+           generation,
+           experimentValue) %>%
+  filter(generation==19) %>%
+  summarise(meanRunTime = mean(experimentRunTime), 
+            sdRunTime = sd(experimentRunTime),
+            meanFitnessGain = mean(fitnessGain),
+            sdFitnessGain = sd(fitnessGain),
+            
+            meanGainPerSecond = mean(fitnessGain/experimentRunTime*100000000),
+            sdGainPerSecond = sd(fitnessGain/experimentRunTime*100000000)) %>%
+  select(experimentValue,
+         meanRunTime,
+         sdRunTime,
+         meanGainPerSecond,
+         sdGainPerSecond) %>%
+    mutate_if(is.numeric, round, 1) %>%
+  as.tibble() %>%
+  select(-generation) %>%
+  stargazer(., summary = FALSE)
+```
+
+```{r}
+genRecords %>%
+  group_by(dataset,
+           experimentType,
+           experimentValue) %>%
+  summarise(n=n())
+```
+
+
+## Experiment 2
+
+
+```{r}
+
+genRecords %>%
+  group_by(dataset,
+           experimentType,
+           experimentValue,
+           experimentIteration) %>%
+  summarise(experimentStartTime = min(generationStartTime)) %>%
+  filter(experimentType == 'epochs')
+```
+
+
+```{r}
+ genRecords %>%
+  mutate(experimentRunTime = generationEndTime - experimentStartTime) %>%
+  filter(experimentType == 'epochs') %>% 
+  group_by(experimentValue, generation) %>%
+  summarise(meanMaxFitness = mean(fitnessMax),
+            sdMaxFitness = sd(fitnessMax),
+            maxMaxFitness = max(fitnessMax),
+            minMaxFitness = min(fitnessMax),
+            meanRunTime = mean(experimentRunTime)) %>%
+  ggplot(aes(meanRunTime, 
+             meanMaxFitness, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentValue))) + 
+  geom_ribbon(aes(ymin = minMaxFitness, ymax = maxMaxFitness, fill=as.factor(experimentValue)), alpha = 0.2) + 
+  geom_point() + 
+  geom_line()
+```
+
+```{r}
+ genRecords %>%
+  mutate(experimentRunTime = generationEndTime - experimentStartTime) %>%
+  filter(experimentType == 'epochs') %>% 
+  ggplot(aes(experimentRunTime, 
+             fitnessMax, 
+             color=as.factor(experimentValue),
+             group=interaction(experimentValue, experimentIteration))) + 
+  geom_point() + 
+  geom_line()
+```
+
+```{r}
+genRecords %>%
+  mutate(experimentRunTime = generationEndTime - experimentStartTime,
+         fitnessGain = fitnessMean - experimentMinMaxFitness) %>%
+  filter(experimentType == 'epochs') %>% 
+  group_by(generation,
+           experimentValue) %>%
+  summarise(meanRunTime = mean(experimentRunTime), 
+            sdRunTime = sd(experimentRunTime),
+            meanFitnessGain = mean(fitnessGain),
+            sdFitnessGain = sd(fitnessGain)) %>%
+  ggplot(aes(generation, 
+             meanFitnessGain, 
+             group=experimentValue, 
+             color=as.factor(experimentValue))) + 
+  geom_line() +
+  labs(title='Fitness gain over generations', 
+       x='Generation',
+       y='Mean fitness gain',
+       color='Epochs/generation') + 
+  theme(legend.position = c(0.8, 0.4))
+
+
+  ggsave('./../data/processed/aaai_paper/fitness_gain_over_generations_pops.pdf', device='pdf', width=5, height=5)
+            
+```
+```{r}
+genRecords %>%
+  group_by(dataset,
+           experimentType) %>%
+  summarise(mean(genomeNodeSizesMean),
+            mean(genomeConnectionSizesMean))
+```
+
+```{r}
+genRecords %>%
+  mutate(experimentRunTime = generationEndTime - experimentStartTime,
+         fitnessGain = fitnessMean - experimentMinMaxFitness) %>%
+  filter(experimentType == 'epochs') %>% 
+  View
+  group_by(generation,
+           experimentValue) %>%
+  summarise(meanRunTime = mean(experimentRunTime), 
+            sdRunTime = sd(experimentRunTime),
+            meanFitnessGain = mean(fitnessGain),
+            sdFitnessGain = sd(fitnessGain)) %>%
+  ggplot(aes(meanRunTime, 
+             meanFitnessGain, 
+             group=experimentValue, 
+             color=as.factor(experimentValue))) + 
+  geom_line() +
+  labs(title='Fitness gain over time (s)', 
+       x='Run time (s)',
+       y='Mean fitness gain',
+       color='Epochs/generation') + 
+  theme(legend.position = c(0.8, 0.4))
+
+
+  ggsave('./../data/processed/aaai_paper/fitness_gain_over_time_pops.pdf', device='pdf', width=5, height=5)
+            
+```
+```{r}
+genRecords %>%
+  mutate(experimentRunTime = generationEndTime - experimentStartTime,
+         fitnessGain = fitnessMean - experimentMinMaxFitness) %>%
+  filter(experimentType == 'epochs') %>% 
+  group_by(generation,
+           experimentValue) %>%
+  filter(generation==49) %>%
+  summarise(meanRunTime = mean(experimentRunTime), 
+            sdRunTime = sd(experimentRunTime),
+            meanFitnessGain = mean(fitnessGain),
+            sdFitnessGain = sd(fitnessGain),
+            
+            meanGainPerSecond = mean(fitnessGain/experimentRunTime*100000000),
+            sdGainPerSecond = sd(fitnessGain/experimentRunTime*100000000)) %>%
+  select(experimentValue,
+         meanRunTime,
+         sdRunTime,
+         meanGainPerSecond,
+         sdGainPerSecond) %>%
+    mutate_if(is.numeric, round, 1) %>%
+  as.tibble() %>%
+  select(-generation) %>%
+  stargazer(., summary = FALSE)
+```
+
+```{r}
+genRecords %>%
+  mutate(experimentRunTime = generationEndTime - experimentStartTime,
+         fitnessGain = fitnessMean - experimentMinMaxFitness) %>%
+  filter(experimentType %in% c('population', 'populationgpu')) %>%
+  group_by(dataset, 
+           experimentValue,
+           experimentType, ) %>%
+  filter(experimentValue < 15) %>%
+  summarise(n=n(),
+            maxMeanFitness = max(fitnessMean),
+            meanFitness = mean(fitnessMean),
+            bpTime = mean(backpropDuration),
+            bpSD = sd(backpropDuration),
+            gaTime = mean(reproductionDuration),
+            gaSD = sd(reproductionDuration),) %>%
+  select(dataset,
+         experimentValue,
+         experimentType,
+         bpTime,
+         bpSD) %>%
+    mutate_if(is.numeric, round, 1) %>%
+    as.tibble() %>%
+  stargazer(., summary=FALSE)
+```
+

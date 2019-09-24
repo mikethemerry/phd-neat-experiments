@@ -350,6 +350,16 @@ GPU is significantly sllower on both datasets, but still looking good with a lin
 
 
 
+```{r}
+results_iris %>% 
+  filter(experimentType == 'population',
+         experimentIteration == 0,
+         experimentValue == 5) %>%
+  select(contains('sepal'),
+         contains('petal'),
+         X1) %>%
+  ggpairs(aes(color=X1))
+```
 
 
 

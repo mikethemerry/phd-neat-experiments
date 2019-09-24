@@ -299,7 +299,7 @@ def create_ancestry_video(config, genome, ancestry, ancestors, statistics, pathn
                 continue
             if fitness > bestFitness:
                 bestGenome = genome
-                bestFitness = fitness
+                bestFitness = fitness   
 
         ancestryFitness[generation] = bestFitness
         fitnessPlotString = fitnessTemplateString.format(generation)

@@ -1,0 +1,242 @@
+---
+title: "Experiments EDA with synthview"
+author: "MIKE MERRY"
+date: "7/26/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(jsonlite)
+library(GGally)           # Load GGally package
+library(AUC)
+
+
+genRecords <- read.csv('./../data/processed/2019-07-29/generationRecords.csv') 
+genRecords <- genRecords %>% as_tibble() %>%
+ mutate(generationDuration = generationEndTime - generationStartTime,
+     reproductionDuration = reproductionEndTime - reproductionStartTime,
+     backpropDuration = backpropEndTime - backpropStartTime
+ )
+
+results_raw_synthview <- read.csv('./../data/processed/2019-07-29/results.csv')
+
+
+
+results_iris <- results_raw_synthview %>% filter(dataset== 'iris') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2)
+     ) %>%
+ separate(X0,c('sepal.length',
+ 'sepal.width',
+ 'petal.length',
+ 'petal.width'), sep=" ", remove = FALSE) %>%
+ separate(X2,c('p0',
+ 'p1',
+ 'p2'), sep=", ", remove = FALSE) %>%
+ mutate(
+  sepal.length = as.numeric(sepal.length),
+  sepal.width = as.numeric(sepal.width),
+  petal.length = as.numeric(petal.length),
+  petal.width = as.numeric(petal.width),
+  p0 = as.numeric(p0),
+  p1 = as.numeric(p1),
+  p2 = as.numeric(p2),
+  maxPred = pmax(p0, p1, p2),
+  pred = case_when(p0 == maxPred ~ 0,
+           p1 == maxPred ~ 1,
+           p2 == maxPred ~ 2))
+
+
+iris_dataset <- results_iris %>%
+  filter(experimentType == 'population',
+         experimentValue == 5,
+         experimentIteration == 0) %>%
+  select(contains('sepal'),
+         contains('petal'),
+         X1,
+         X)
+
+results_iris <- results_iris %>%
+  select(-X1, 
+         -contains('sepal'),
+         -contains('petal')) %>%
+  left_join(iris_dataset, by='X') %>%
+  mutate(
+  correct = pred == X1,
+  pred = as.factor(pred))
+
+
+numericcharacters <- function(x) {
+  !any(is.na(suppressWarnings(as.numeric(x)))) & is.character(x)
+}
+
+results_bc <- results_raw_synthview %>% filter(dataset== 'breast-cancer') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2),
+     X2 = as.numeric(X2),
+     pred = round(X2),
+     correct = pred==X1
+     ) %>%
+ separate(X0,c('mean radius', 'mean texture', 'mean perimeter', 'mean area',
+       'mean smoothness', 'mean compactness', 'mean concavity',
+       'mean concave points', 'mean symmetry', 'mean fractal dimension',
+       'radius error', 'texture error', 'perimeter error', 'area error',
+       'smoothness error', 'compactness error', 'concavity error',
+       'concave points error', 'symmetry error',
+       'fractal dimension error', 'worst radius', 'worst texture',
+       'worst perimeter', 'worst area', 'worst smoothness',
+       'worst compactness', 'worst concavity', 'worst concave points',
+       'worst symmetry', 'worst fractal dimension'), sep=" ", remove = FALSE) %>%
+  mutate_if(numericcharacters,as.numeric)
+
+
+
+results_sv <- results_raw_synthview %>% filter(dataset== 'synthview') %>% as_tibble() %>%
+ mutate(X0 = gsub("\\[", "", X0),
+     X0 = gsub("\\]", "", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = gsub("  ", " ", X0),
+     X0 = trimws(X0),
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2),
+     X2 = as.numeric(X2),
+     pred = round(X2),
+     correct = pred==X1
+     ) 
+
+```
+
+```{r}
+results_raw_synthview %>%
+  head
+```
+
+
+```{r}
+genRecords %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             group=interaction(experimentValue, experimentIteration),
+             color=as.factor(experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+
+
+```{r}
+genRecords %>%
+  ggplot(aes(generation, 
+             fitnessMean, 
+             group=interaction(experimentValue, experimentIteration),
+             color=as.factor(experimentValue))) +
+  geom_point() +
+  geom_line()
+```
+
+```{r}
+genRecords %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             group=interaction(experimentValue, experimentIteration),
+             color=as.factor(experimentValue))) +
+  geom_point() +
+  geom_line() +
+  facet_grid(experimentValue ~.)
+```
+
+
+```{r}
+genRecords %>%
+  ggplot(aes(generation, 
+             fitnessMean, 
+             group=interaction(experimentValue, experimentIteration),
+             color=as.factor(experimentValue))) +
+  geom_point() +
+  geom_line() +
+  facet_grid(experimentValue ~.)
+```
+
+```{r}
+genRecords %>%
+  filter(experimentValue==10000) %>%
+  ggplot(aes(generation, 
+             fitnessMax, 
+             group=interaction(experimentValue, experimentIteration),
+             color=as.factor(experimentValue))) +
+  geom_point() +
+  geom_line() +
+  facet_grid(experimentIteration ~.)
+```
+
+```{r}
+genRecords %>% 
+  ggplot(aes(experimentValue, 
+             backpropDuration, 
+             group=experimentValue)) +
+  geom_boxplot() 
+```
+
+```{r}
+genRecords %>% 
+  ggplot(aes(experimentValue, 
+             reproductionDuration, 
+             group=experimentValue)) +
+  geom_boxplot() 
+```
+
+```{r}
+results_raw_synthview %>%
+  head
+```
+
+
+```{r}
+results_short <- results_raw_synthview %>%
+  filter(experimentValue == 10000,
+         experimentIteration == 0) %>%
+  as_tibble() %>%
+  mutate(
+     X2 = gsub("\\[", "", X2),
+     X2 = gsub("\\]", "", X2),
+     X2 = gsub("  ", " ", X2),
+     X2 = as.numeric(X2)
+     )
+```
+
+```{r}
+results_short %>%
+  group_by(X1) %>%
+  summarise(mean(X2))
+```
+
+```{r}
+roc.short <- roc(results_short$X2, as.factor(results_short$X1))
+plot(roc.short)
+
+```
+```{r}
+auc(roc.short)
+```
+
+
+
