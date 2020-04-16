@@ -35,7 +35,7 @@ ARG REBUILD_FIRST=1
 
 # Install neat experiments
 RUN cd /src/requirements && \
-    git clone https://github.com/mikethemerry/phd-neat-experiments && \
+    git clone -b newyearchanges https://github.com/mikethemerry/phd-neat-experiments && \
     cd phd-neat-experiments && \
     conda install -y --file conda_requirements.txt
 
