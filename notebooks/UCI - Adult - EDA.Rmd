@@ -1,0 +1,125 @@
+---
+title: "UCI - Adult - EDA"
+author: "Mike Merry"
+date: "10/05/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(tidyr)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(modelr)
+library(broom)
+library(naivebayes)
+
+adult.raw <- read.csv('./../../../data/uci/processed/data/adult/adult.data', 
+                      col.names = c(
+                        'age',
+                        'workingClass',
+                        'fnlwgt',
+                        'education',
+                        'educationNum',
+                        'martialStatus',
+                        'occupation',
+                        'relationship',
+                        'race',
+                        'sex',
+                        'capitalGain',
+                        'capitalLoss',
+                        'hoursPerWeek',
+                        'nativeCountry',
+                        'gt50k'
+                        
+                      )) 
+
+adult <- adult.raw %>%
+  mutate(gt50k = grepl('>50K', as.character(gt50k)))
+```
+age: continuous.
+workclass: Private, Self-emp-not-inc, Self-emp-inc, Federal-gov, Local-gov, State-gov, Without-pay, Never-worked.
+fnlwgt: continuous.
+education: Bachelors, Some-college, 11th, HS-grad, Prof-school, Assoc-acdm, Assoc-voc, 9th, 7th-8th, 12th, Masters, 1st-4th, 10th, Doctorate, 5th-6th, Preschool.
+education-num: continuous.
+marital-status: Married-civ-spouse, Divorced, Never-married, Separated, Widowed, Married-spouse-absent, Married-AF-spouse.
+occupation: Tech-support, Craft-repair, Other-service, Sales, Exec-managerial, Prof-specialty, Handlers-cleaners, Machine-op-inspct, Adm-clerical, Farming-fishing, Transport-moving, Priv-house-serv, Protective-serv, Armed-Forces.
+relationship: Wife, Own-child, Husband, Not-in-family, Other-relative, Unmarried.
+race: White, Asian-Pac-Islander, Amer-Indian-Eskimo, Other, Black.
+sex: Female, Male.
+capital-gain: continuous.
+capital-loss: continuous.
+hours-per-week: continuous.
+native-country
+```{r}
+adult %>%
+  glimpse
+```
+
+
+
+```{r}
+adult %>%
+  ggplot(aes(age, fill=gt50k)) + 
+  geom_histogram(binwidth=2.5)
+```
+```{r}
+adult %>%
+  ggplot(aes(hoursPerWeek, fill=gt50k)) +
+  geom_histogram()
+```
+
+```{r}
+model <- lm(gt50k ~ ., data = adult)
+```
+
+
+```{r}
+augmented <- add_residuals(add_predictions(adult, model), model)
+```
+```{r}
+augmented %>%
+  ggplot(aes(pred,fill=gt50k)) + 
+  geom_histogram(binwidth=0.05)
+```
+```{r}
+augmented %>%
+  mutate(predbin = cut_width(pred, 0.05, center = 0.025)) %>%
+  group_by(predbin) %>%
+  summarise(n=n(),
+            prop.gt50k = mean(gt50k)) 
+```
+
+
+
+
+
+```{r}
+summary(model)
+```
+
+```{r}
+cor(data.frame(cbind(actuals=augmented$gt50k, predicteds=augmented$pred)))
+```
+
+```{r}
+augmented %>%
+  write_csv('./../../phd-neat-experiments/data/processed/adult_linear_model_with_predictions.csv')
+```
+
+```{r}
+nb <- naive_bayes(gt50k ~ ., data = adult)
+```
+
+
+```{r}
+augment_columns(nb, adult) %>%
+  mutate(pred = .fitted==2,
+         correct = pred==gt50k) %>%
+  summarise(mean(correct))
+
+```
+

@@ -1,0 +1,76 @@
+---
+title: "UCI Exploration"
+author: "Mike Merry"
+date: "08/05/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readr)
+```
+
+```{r}
+uci.raw <- read_csv('~/data/uci/processed/datasets.csv')
+
+uci <- uci.raw %>%
+  mutate(associatedTasks = as.character(associatedTasks),
+         attributeCharacteristics = as.character(attributeCharacteristics),
+         classification = grepl("Classification",  associatedTasks, fixed=TRUE),
+         regression = grepl("Regression" , associatedTasks,fixed=TRUE),
+         has.categorical = grepl("Categorical", attributeCharacteristics, fixed=TRUE),
+         has.integer = grepl("Integer", attributeCharacteristics, fixed=TRUE),
+         has.real = grepl("Real", attributeCharacteristics, fixed=TRUE),
+         nInstances = parse_number(nInstances),
+         nAttributes = parse_number(nAttributes)
+         )
+uci %>%
+  glimpse()
+# unnest(associatedTasks) %>% 
+  #      group_by(abstract) %>% 
+  #      mutate(col=seq_along(abstract)) %>% #add a column indicator
+  #      spread(key=col, value=associatedTasks)
+
+
+```
+
+```{r}
+uci %>% glimpse
+```
+
+```{r}
+uci %>%
+  arrange(-nInstances) %>%
+  select(dsName,
+         area,
+         nInstances,
+         nAttributes,
+         nWebHits,
+         associatedTasks,
+         attributeCharacteristics,
+         area,
+         abstract,
+         dataSetCharacteristics
+         ) %>%
+  View
+```
+
+```{r}
+uci %>%
+  nrow()
+```
+
+
+
+```{r}
+uci %>%
+  filter(nInstances>10000,
+         nAttributes < 1000) %>%
+  arrange(-nInstances) %>%   
+  write_csv('./../data/processed/uci_datasets_filtered.csv')
+```
+
