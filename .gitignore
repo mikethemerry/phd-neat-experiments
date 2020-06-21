@@ -95,3 +95,4 @@ target/
 *.png
 */tmp/*
 experiments/xor-explaneat/tmp/ancestor0000000000
+.Rproj.user
