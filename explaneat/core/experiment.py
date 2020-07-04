@@ -3,9 +3,6 @@ import time
 import json
 import os
 import sys
-from neat.six_util import iteritems, itervalues
-
-from neat.six_util import iteritems, itervalues
 from neat.math_util import mean, stdev
 
 
@@ -100,7 +97,7 @@ class ExperimentReporter(object):
         self.set_generation_record_value('generationEndTime', time.time())
 
     def post_evaluate(self, config, population, speciess, best_genome):
-        fitnesses = [c.fitness for c in itervalues(population)]
+        fitnesses = [c.fitness for c in iter(population.itervalues())]
         fit_mean = mean(fitnesses)
         fit_std = stdev(fitnesses)
         self.set_generation_record_value('fitnesses', fitnesses)

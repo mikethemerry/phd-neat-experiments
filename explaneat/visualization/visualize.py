@@ -233,7 +233,7 @@ def draw_net(config, genome, view=False, filename=None, node_names=None, show_di
             width = str(0.1 + abs(cg.weight / 5.0))
             dot.edge(a, b, _attributes={'style': style, 'color': color, 'penwidth': width})
 
-    dot.render(filename, view=view)
+    dot.render(filename, view=False)
 
     return dot
 
@@ -276,7 +276,7 @@ def plot_net_decisions_2d(net, view=False, filename=None):
     
 
 def create_ancestry_video(config, genome, ancestry, ancestors, statistics, pathname = None, 
-                videoFilename=None, ):
+                videoFilename=None,):
     ### create the ancestor graphs for the generations
     # Make filename `ancestor00001.png`
 
@@ -309,7 +309,7 @@ def create_ancestry_video(config, genome, ancestry, ancestors, statistics, pathn
         bestNet = neat.nn.FeedForwardNetwork.create(ancestors[bestGenome], config)
 
         decisionFileString = decisionBoundaryString.format(generation)
-        plot_net_decisions_2d(bestNet, filename=decisionFileString)
+#         plot_net_decisions_2d(bestNet, filename=decisionFileString)
         decisionImageFiles.append(decisionFileString)
 
 
@@ -335,7 +335,7 @@ def create_ancestry_video(config, genome, ancestry, ancestors, statistics, pathn
         bestGenome = ancestors[bestGenomeKey]
 
         fileStr = templateString.format(generation)
-        draw_net(config, bestGenome, filename=fileStr, fmt='png')
+        draw_net(config, bestGenome, filename=fileStr, fmt='png', view=False)
         netImageFiles.append('%s.png'%fileStr)
 
 
@@ -364,19 +364,19 @@ def create_ancestry_video(config, genome, ancestry, ancestors, statistics, pathn
         print(fitnessFile)
         fitness = imread(fitnessFile)
         
-        decisionFile = decisionBoundaryString.format(generation)
-        print(decisionFile)
-        decision = imread(decisionFile)
+#         decisionFile = decisionBoundaryString.format(generation)
+#         print(decisionFile)
+#         decision = imread(decisionFile)
 
         frame = np.zeros((height,width,layers), np.uint8)
         frame.fill(255)
         netResized  = resize(net, (halfWidth, halfHeight))
         fitnessResized = resize(fitness, (halfWidth, halfHeight))
-        decisionResized = resize(decision, (halfWidth, halfHeight))
+#         decisionResized = resize(decision, (halfWidth, halfHeight))
         # fitnessResized = fitness
         frame[0:halfHeight, 0:halfWidth] = fitnessResized
         frame[halfHeight:height, 0:halfWidth] = netResized
-        frame[0:halfHeight, halfWidth:width] = decisionResized
+#         frame[0:halfHeight, halfWidth:width] = decisionResized
     #     # resized = resize_to_max(im, height, width)
     #     resized = resize(im, (width, height))
     #     # frame[0:resized.shape[0], 0:resized.shape[1]] = resized

@@ -15,8 +15,10 @@ RUN conda install -y jupyter \
 	numpy \
 	scipy \
 	vispy \ 
-	ipython \
-	python-graphviz
+	ipython
+RUN conda install -c conda-forge graphviz xorg-libxrender xorg-libxpm && \
+    pip install graphviz
+RUN apt-get update && apt-get -y install graphviz
 
 
 RUN mkdir /src && mkdir /src/requirements
@@ -33,7 +35,7 @@ ARG REBUILD_FIRST=1
 
 # Install neat experiments
 RUN cd /src/requirements && \
-    git clone https://github.com/mikethemerry/phd-neat-experiments && \
+    git clone -b newyearchanges https://github.com/mikethemerry/phd-neat-experiments && \
     cd phd-neat-experiments && \
     conda install -y --file conda_requirements.txt
 
@@ -42,5 +44,5 @@ RUN cd /src/requirements && \
 
 EXPOSE 6006 8888
 
-WORKDIR "/app"
+WORKDIR "/root"
 CMD ["/bin/bash"]

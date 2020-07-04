@@ -10,3 +10,4 @@ scikit-learn==0.21.1
 scipy==1.2.1
 torch==1.1.0
 torchvision==0.2.2
+-e git+https://github.com/CodeReclaimers/neat-python@e3dbe77c0d776eae41d598e6439e6ac02ab90b18#egg=neat_python
