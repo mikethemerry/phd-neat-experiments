@@ -12,9 +12,9 @@ import copy
 
 
 def tt(num):
-    # USE_CUDA = torch.cuda.is_available()
-    USE_CUDA = False
-    device = torch.device("cuda:1" if USE_CUDA else "cpu")
+    USE_CUDA = torch.cuda.is_available()
+    # USE_CUDA = False
+    device = torch.device("cuda:0" if USE_CUDA else "cpu")
 
     # if torch.cuda.is_available():
         # return nn.Parameter(torch.tensor([float(num)], requires_grad=True).cuda())
@@ -72,9 +72,9 @@ class NeatNet():
         self.order_of_nodes = self.get_order_of_nodes()
 
 
-        # USE_CUDA = torch.cuda.is_available()
-        USE_CUDA = False
-        device = torch.device("cuda:1" if USE_CUDA else "cpu")
+        USE_CUDA = torch.cuda.is_available()
+        # USE_CUDA = False
+        device = torch.device("cuda:0" if USE_CUDA else "cpu")
         
         self.optimizer = optim.Adadelta(self.params, lr=1.5)
         self.criterion = criterion.to(device)
@@ -118,9 +118,9 @@ class NeatNet():
     def activateNode(self, node):
         
         
-        # USE_CUDA = torch.cuda.is_available()
-        USE_CUDA = False
-        device = torch.device("cuda:1" if USE_CUDA else "cpu")
+        USE_CUDA = torch.cuda.is_available()
+        # USE_CUDA = False
+        device = torch.device("cuda:0" if USE_CUDA else "cpu")
         
         
         vals = [
@@ -154,7 +154,7 @@ class NeatNet():
             self.nodeVals[node] = self.activateNode(node)
 
         # print(self.nodeVals)
-        output = torch.tensor([self.nodeVals[k] for k in self.output_keys], requires_grad=True).view(-1, len(self.output_keys))
+        output = torch.tensor([self.nodeVals[k] for k in self.output_keys], requires_grad=True, dtype=torch.float).view(-1, len(self.output_keys))
         if len(self.output_keys) == 1:
             output = output.view(1)
         # print(output)
@@ -164,9 +164,9 @@ class NeatNet():
 
     def optimise(self, xs, ys, nEpochs = 100):
 
-        # USE_CUDA = torch.cuda.is_available()
-        USE_CUDA = False
-        device = torch.device("cuda:1" if USE_CUDA else "cpu")
+        USE_CUDA = torch.cuda.is_available()
+        # USE_CUDA = False
+        device = torch.device("cuda:0" if USE_CUDA else "cpu")
         if not type(xs) is torch.Tensor:
             xs = torch.tensor(xs).to(device)
         if not type(ys) is torch.Tensor:
@@ -180,7 +180,7 @@ class NeatNet():
                 output = self.forward(xs[inX])
                 target = ys[inX].view(-1)
                 target = target.to('cpu')
-                loss = self.criterion(output, target)
+                loss = self.criterion(output.float(), target.float())
                 loss.backward()
                 self.optimizer.step()
     optimize = optimise
@@ -204,9 +204,9 @@ class NeatNet():
             # print(output.size())
             # print(target.size())
             # print(self.criterion)
-            target = target.to('cpu')
+            target = target.to('cpu').float()
 #             print(target.device)
-            losses.append(self.criterion(output, target))
+            losses.append(self.criterion(output.float(), target.float()))
         return sum(losses)/len(losses)
 
     def updateGenomeWeights(self, genome):
