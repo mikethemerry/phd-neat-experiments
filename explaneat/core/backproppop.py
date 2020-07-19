@@ -16,12 +16,14 @@ from explaneat.core.backprop import NeatNet
 # from neat.reporting import ReporterSet
 # from neat.reporting import BaseReporter
 from explaneat.core.experiment import ExperimentReporterSet as ReporterSet
+from explaneat.core.utility import MethodTimer
 
 
 # from explaneat.core.experiment import
 
 from neat.population import Population
 
+import logging
 
 class BackpropPopulation(Population):
     """
@@ -123,23 +125,35 @@ class BackpropPopulation(Population):
         while n is None or k < n:
             k += 1
 
-            self.reporters.start_generation(self.generation)
+            with MethodTimer('generationStart'):
+                self.reporters.start_generation(self.generation)
 
-            self.reporters.pre_backprop(self.config, self.population, self.species)
+            with MethodTimer('pre_backprop'):
+                self.reporters.pre_backprop(self.config, self.population, self.species)
             
-            self.backpropagate(self.xs, self.ys, nEpochs=nEpochs)
+            with MethodTimer('backprop'):
+                self.backpropagate(self.xs, self.ys, nEpochs=nEpochs)
 
-            self.reporters.post_backprop(self.config, self.population, self.species)
+            with MethodTimer('post_backprop'):
+                self.reporters.post_backprop(self.config, self.population, self.species)
             
+            logging.debug('The current population after backpropagation is')
+            logging.debug(self.population)
+
             # Evaluate all genomes using the user-provided function.
-            fitness_function(list(iter(self.population.iteritems())), self.config)
+            # fitness_function(list(iter(self.population.iteritems())), self.config)
+
+            with MethodTimer('evaluate fitness'):
+                fitness_function(self.population, self.config)
 
             # Gather and report statistics.
             best = None
-            for g in iter(self.population.itervalues()):
+            for genome_id, g in self.population.items():
                 if best is None or g.fitness > best.fitness:
                     best = g
-            self.reporters.post_evaluate(self.config, self.population, self.species, best)
+
+            with MethodTimer('post evaluate'):
+                self.reporters.post_evaluate(self.config, self.population, self.species, best)
 
             # Track the best genome ever seen.
             if self.best_genome is None or best.fitness > self.best_genome.fitness:
@@ -147,17 +161,22 @@ class BackpropPopulation(Population):
 
             if not self.config.no_fitness_termination:
                 # End if the fitness threshold is reached.
-                fv = self.fitness_criterion(g.fitness for g in iter(self.population.itervalues()))
+                fv = self.fitness_criterion(g.fitness for genome_id, g in self.population.items())
                 if fv >= self.config.fitness_threshold:
                     self.reporters.found_solution(self.config, self.generation, best)
                     break
 
             # Create the next generation from the current generation.
-            self.reporters.pre_reproduction(self.config, self.population, self.species)
-            self.population = self.reproduction.reproduce(self.config, self.species,
+
+            with MethodTimer('pre_reproduction'):
+                self.reporters.pre_reproduction(self.config, self.population, self.species)
+
+            with MethodTimer('reproduction'):
+                self.population = self.reproduction.reproduce(self.config, self.species,
                                                           self.config.pop_size, self.generation)
 
-            self.reporters.post_reproduction(self.config, self.population, self.species)
+            with MethodTimer('post reproduction'):
+                self.reporters.post_reproduction(self.config, self.population, self.species)
 
 
             # Check for complete extinction.
@@ -174,9 +193,12 @@ class BackpropPopulation(Population):
                     raise CompleteExtinctionException()
 
             # Divide the new population into species.
-            self.species.speciate(self.config, self.population, self.generation)
 
-            self.reporters.end_generation(self.config, self.population, self.species)
+            with MethodTimer('speciate'):
+                self.species.speciate(self.config, self.population, self.generation)
+
+            with MethodTimer('end generation'):
+                self.reporters.end_generation(self.config, self.population, self.species)
 
             self.generation += 1
         
