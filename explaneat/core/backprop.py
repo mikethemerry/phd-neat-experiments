@@ -26,6 +26,47 @@ def tt(num):
 def neatSigmoid(num):
     return torch.sigmoid(4.9*num)
 
+class NeatNetSparseDense():
+    def __init__(self, genome, config, criterion=nn.BCELoss()):
+        self.input_keys = self.config.genome_config.input_keys
+        self.output_keys = self.config.genome_config.output_keys
+
+        USE_CUDA = torch.cuda.is_available()
+        # USE_CUDA = False
+        device = torch.device("cuda:0" if USE_CUDA else "cpu")
+        
+
+
+    def forward(self, inputs):
+        pass
+
+    def optimise(self, xs, ys, nEpochs = 5):
+        pass
+
+    def meanLoss(self, xs, ys):
+        if not type(xs) is torch.Tensor:
+            xs = torch.tensor(xs)
+        if not type(ys) is torch.Tensor:
+            ys = torch.tensor(ys)
+        losses = []
+        for inX in range(len(xs)):
+
+            output = self.forward(xs[inX])
+            target = ys[inX].view(-1)
+            target = target.to('cpu').float()
+            losses.append(self.criterion(output.float(), target.float()))
+        return sum(losses)/len(losses)
+
+    def updateGenomeWeights(self, genome):
+        """takes in GenomeClass object and replaces the genome weights in place
+        """
+        # for k in genome.connections:
+        #     genome.connections[k].weight = float(self.connections[k][0])
+        # for k in genome.nodes:
+        #     genome.nodes[k].bias = float(self.biases[k][0])
+        pass
+
+
 class NeatNet():
     def __init__(self, genome, config, criterion=nn.BCELoss()):
         # super(NeatNet, self).__init__()

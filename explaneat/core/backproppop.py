@@ -83,7 +83,8 @@ class BackpropPopulation(Population):
 
         self.best_genome = None
 
-    def backpropagate(self, xs, ys, nEpochs = 300):
+    def backpropagate(self, xs, ys, nEpochs = 5):
+        print('about to start backprop with {} epochs'.format(nEpochs))
         try:
             nEpochs = self.config.generations_of_backprop
         except AttributeError:
