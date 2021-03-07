@@ -142,6 +142,7 @@ class NeuralNeat(nn.Module):
 
             # Set up current weights
             layer['input_weights'] = np.zeros(layer['weights_shape'])
+            layer['input_map'] = {}
             layer_offset = 0
             # Check every layer and every node for connections
             for input_layer_id in layer['input_layers']:
@@ -161,32 +162,37 @@ class NeuralNeat(nn.Module):
                             in_weight_location = layer_offset + node['layer_index']
                             out_weight_location = node_output['layer_index']
                             layer['input_weights'][in_weight_location][out_weight_location] = connection_weight
+                            layer['input_map'][(node_id, node_output_id)] = (in_weight_location, out_weight_location)
                 layer_offset += len(input_layer['nodes'])
 
         return layers
 
-    # def update_genome_weights(self):
-    #     for layer_id, layer in self.layers.items():
-    #         layer_offset = 0
-    #         # Check every layer and every node for connections
-    #         for input_layer_id in layer['input_layers']:
-    #             input_layer = layers[input_layer_id]
-    #             for node_id, node in input_layer['nodes'].items():
-    #                 for node_output_id in node['output_ids']:
-    #                     if node_output_id in layer['nodes']:
-    #                         node_output = layer['nodes'][node_output_id]
-    #                         # I HAVE THIS NODE!
-    #                         # What is it's weight?
-    #                         connection = genome.connections[(node_id, node_output_id)]
+    def update_genome_weights(self):
+        for layer_id, layer in self.layers.items():
+            for genome_location, weight_location in layer['input_map'].items():
+                self.genome.connections[genome_location].new_weight = self.weights[layer_id][weight_location[0]][weight_location[1]]
+            # layer_offset = 0
+            # # Check every layer and every node for connections
+            # for input_layer_id in layer['input_layers']:
+            #     input_layer = self.layers[input_layer_id]
+            #     for node_id, node in input_layer['nodes'].items():
+            #         for node_output_id in node['output_ids']:
+            #             if node_output_id in layer['nodes']:
+            #                 node_output = layer['nodes'][node_output_id]
+            #                 # I HAVE THIS NODE!
+            #                 print(node_id, node_output_id)
+            #                 # What is it's weight?
+            #                 connection = self.genome.connections[(node_id, node_output_id)]
+            #                 if not connection.enabled:
+            #                     continue
+            #                 # connection_weight = connection.weight
 
-    #                         if not connection.enabled:
-    #                             continue
-    #                         connection_weight = connection.weight
+            #                 in_weight_location = layer_offset + node['layer_index']
+            #                 out_weight_location = node_output['layer_index']
 
-    #                         in_weight_location = layer_offset + node['layer_index']
-    #                         out_weight_location = node_output['layer_index']
-    #                         layer['input_weights'][in_weight_location][out_weight_location] = connection_weight
-    #             layer_offset += len(input_layer['nodes'])
+            #                 # layer['input_weights'][in_weight_location][out_weight_location] = connection_weight
+            #                 self.genome.connections[(node_id, node_output_id)].weight = self.weights[layer_id][in_weight_location][out_weight_location]
+                # layer_offset += len(input_layer['nodes'])
 
     
 
