@@ -1,11 +1,11 @@
 {
     "experiment":{
-        "name":"Test Experiment",
-        "description":"This is a dummy experiment",
-        "codename":"testex"
+        "name":"Dummy test Experiment",
+        "description":"This is a dummy experiment with bad values",
+        "codename":"dummytestex"
     },
     "results":{
-        "location":"bad location"
+        "location":"Bad Testing Location"
     },
     "data":{
         "locations":{

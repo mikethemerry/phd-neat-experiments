@@ -25,7 +25,12 @@ experiment = {
                 "codename": {
                     "type": "string"
                 }
-            }
+            },
+            "required":[
+                "name",
+                "description",
+                "codename"
+            ]
         },
         "results": {
             "type": "object",
@@ -37,7 +42,6 @@ experiment = {
             "required":["location"]
         },
         "data": {
-
             "type": "object",
             "properties": {
                 "locations": {
