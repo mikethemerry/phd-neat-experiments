@@ -32,6 +32,14 @@ class obj:
 
 class GenericExperiment(object):
 
+    folders = [
+            'results',
+            'results/interim',
+            'results/final',
+            'configurations',
+            'logs'
+        ]
+
 
     def __init__(self, config):
         if Path(config).is_file():
@@ -41,6 +49,8 @@ class GenericExperiment(object):
             raise FileNotFoundError("Config file not found")
 
         self.generate_folder_structure()
+
+        self.save_configurations()
 
     def generate_folder_structure(self):
         ## This will create the standard folder structure for experiments
@@ -66,21 +76,22 @@ class GenericExperiment(object):
         if not os.path.exists(self.root_path):
             logger.info("Creating the root path")
             os.makedirs(self.root_path)
+        logger.info('Root path created')
 
-        folders = [
-            'results',
-            'results/interim',
-            'results/final',
-            'configurations',
-            'logs'
-        ]
-        for folder in folders:
-            folder_name = os.path.join(self.root_path, folder)
+        for folder in self.folders:
+            folder_name = self.path(folder)
             logger.info('Creating %s' % folder)
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
+        logger.info('All folders created')
 
+    def path(self, *args):
+        return os.path.join(self.root_path, *args)
 
+    def save_configurations(self):
+        logger.info('Saving experiment configuration')
+        with open(self.path('configurations', 'experiment.json'), 'w') as fp:
+            json.dump(self.config, fp, indent=4, sort_keys=True)
 
 
 
