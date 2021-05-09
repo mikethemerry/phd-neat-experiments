@@ -3,6 +3,8 @@ from explaneat.experimenter.schemas.experiment import experiment as EXPERIMENT_S
 from pathlib import Path
 import json
 import logging
+import os
+import datetime
 
 LOGGING_LEVEL = logging.INFO
 
@@ -31,13 +33,55 @@ class obj:
 class GenericExperiment(object):
 
 
-
     def __init__(self, config):
         if Path(config).is_file():
             with open(config, 'r') as fp:
                 self.config = json.load(fp)
         else:
             raise FileNotFoundError("Config file not found")
+
+        self.generate_folder_structure()
+
+    def generate_folder_structure(self):
+        ## This will create the standard folder structure for experiments
+        ## including results, experiment information, etc.
+        logger.info("Starting to create folder structures")
+
+        self.experiment_folder_name = "%s_%s" % (
+            self._config['experiment']['codename'],
+            datetime.datetime.now().strftime("%y%m%dT%H%M%S")
+            )
+        logger.info("Experiment folder name is %s" %self.experiment_folder_name)
+
+        self.root_path = os.path.join(
+            self.config['experiment']['base_location'],
+            self.experiment_folder_name
+            )
+        logger.info("Experiment root path is %s" % self.root_path)
+
+        if not os.path.exists(self.config['experiment']['base_location']):
+            if not (input("The base location does not exist, continue? Y/N\nBase location is %s"%self.config['experiment']['base_location']).lower() == "y"):
+                raise FileNotFoundError("The base location does not exist!")
+        ## baselocation/[experiment_name]_[time]
+        if not os.path.exists(self.root_path):
+            logger.info("Creating the root path")
+            os.makedirs(self.root_path)
+
+        folders = [
+            'results',
+            'results/interim',
+            'results/final',
+            'configurations',
+            'logs'
+        ]
+        for folder in folders:
+            folder_name = os.path.join(self.root_path, folder)
+            logger.info('Creating %s' % folder)
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
+
+
+
 
 
     def dict2obj(self, dict1):
@@ -52,21 +96,22 @@ class GenericExperiment(object):
         validate(configuration, EXPERIMENT_SCHEMA)
         logger.info("Schema validation passed")
 
+
+        # Check base location exists
+        if not Path(configuration['experiment']['base_location']).is_dir():
+            logger.error("`%s` does not exist as base location" % (
+                configuration['experiment']['base_location']
+                )
+            )
+
         # Check data file locations
         for location_name, location in configuration['data']['locations'].items():
             logger.info("Checking `%s` for existence" % (location_name))
             for data_set in ['xs', 'ys']:
                 if not Path(location[data_set]).is_file():
-                    logger.warning("`{}` is not a file for `{}` - `{}`".format(
+                    logger.error("`{}` is not a file for `{}` - `{}`".format(
                     location[data_set], location, data_set
                 ))
-
-        # check results location name
-        if not Path(configuration['results']['location']).is_dir():
-            logger.warning("`%s` does not exist to put results into" % (
-                configuration['results']['location']
-                )
-            )
 
     @property
     def config(self):
@@ -75,16 +120,8 @@ class GenericExperiment(object):
     @config.setter
     def config(self, configuration):
         self.validate_configuration(configuration)
-
         self._config = configuration
 
-    
     @config.getter
     def config(self):
         return self._config
-
-    def _validate_configuration(self):
-        validate(self._config, EXPERIMENT_SCHEMA)
-
-    # def _create_experiment_folders(self):
-        

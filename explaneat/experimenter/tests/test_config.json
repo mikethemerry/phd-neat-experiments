@@ -1,12 +1,12 @@
 {
     "experiment":{
-        "name":"Dummy test Experiment",
-        "description":"This is a dummy experiment with bad values",
-        "codename":"dummytestex",
-        "base_location":"non existant"
+        "name":"Test Experiment",
+        "description":"This is a dummy experiment with reasonable values",
+        "codename":"test_experiment",
+        "base_location":"/Users/mike/dev-mtm/phd-neat-experiments/data/experiments/tests"
     },
     "results":{
-        "location":"Bad Testing Location"
+        "location":"data"
     },
     "data":{
         "locations":{

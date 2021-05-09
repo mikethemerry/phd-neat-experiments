@@ -25,12 +25,16 @@ experiment = {
                 },
                 "codename": {
                     "type": "string"
+                },
+                "base_location":{
+                    "type":"string"
                 }
             },
             "required":[
                 "name",
                 "description",
-                "codename"
+                "codename",
+                "base_location"
             ]
         },
         "results": {
