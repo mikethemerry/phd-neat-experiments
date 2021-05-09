@@ -14,17 +14,16 @@ logger.setLevel(LOGGING_LEVEL)
 ch = logging.StreamHandler()
 ch.setLevel(LOGGING_LEVEL)
 
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 # add formatter to ch
 ch.setFormatter(formatter)
 # add ch to logger
 logger.addHandler(ch)
 
 
-
-
 class obj:
-      
+
     # constructor
     def __init__(self, dict1):
         self.__dict__.update(dict1)
@@ -33,13 +32,12 @@ class obj:
 class GenericExperiment(object):
 
     folders = [
-            'results',
-            'results/interim',
-            'results/final',
-            'configurations',
-            'logs'
-        ]
-
+        'results',
+        'results/interim',
+        'results/final',
+        'configurations',
+        'logs'
+    ]
 
     def __init__(self, config):
         if Path(config).is_file():
@@ -53,26 +51,27 @@ class GenericExperiment(object):
         self.save_configurations()
 
     def generate_folder_structure(self):
-        ## This will create the standard folder structure for experiments
-        ## including results, experiment information, etc.
+        # This will create the standard folder structure for experiments
+        # including results, experiment information, etc.
         logger.info("Starting to create folder structures")
 
         self.experiment_folder_name = "%s_%s" % (
             self._config['experiment']['codename'],
             datetime.datetime.now().strftime("%y%m%dT%H%M%S")
-            )
-        logger.info("Experiment folder name is %s" %self.experiment_folder_name)
+        )
+        logger.info("Experiment folder name is %s" %
+                    self.experiment_folder_name)
 
         self.root_path = os.path.join(
             self.config['experiment']['base_location'],
             self.experiment_folder_name
-            )
+        )
         logger.info("Experiment root path is %s" % self.root_path)
 
         if not os.path.exists(self.config['experiment']['base_location']):
-            if not (input("The base location does not exist, continue? Y/N\nBase location is %s"%self.config['experiment']['base_location']).lower() == "y"):
+            if not (input("The base location does not exist, continue? Y/N\nBase location is %s" % self.config['experiment']['base_location']).lower() == "y"):
                 raise FileNotFoundError("The base location does not exist!")
-        ## baselocation/[experiment_name]_[time]
+        # baselocation/[experiment_name]_[time]
         if not os.path.exists(self.root_path):
             logger.info("Creating the root path")
             os.makedirs(self.root_path)
@@ -93,8 +92,6 @@ class GenericExperiment(object):
         with open(self.path('configurations', 'experiment.json'), 'w') as fp:
             json.dump(self.config, fp, indent=4, sort_keys=True)
 
-
-
     def dict2obj(self, dict1):
         # https://www.geeksforgeeks.org/convert-nested-python-dictionary-to-object/
         # using json.loads method and passing json.dumps
@@ -107,12 +104,11 @@ class GenericExperiment(object):
         validate(configuration, EXPERIMENT_SCHEMA)
         logger.info("Schema validation passed")
 
-
         # Check base location exists
         if not Path(configuration['experiment']['base_location']).is_dir():
             logger.error("`%s` does not exist as base location" % (
                 configuration['experiment']['base_location']
-                )
+            )
             )
 
         # Check data file locations
@@ -121,13 +117,13 @@ class GenericExperiment(object):
             for data_set in ['xs', 'ys']:
                 if not Path(location[data_set]).is_file():
                     logger.error("`{}` is not a file for `{}` - `{}`".format(
-                    location[data_set], location, data_set
-                ))
+                        location[data_set], location, data_set
+                    ))
 
     @property
     def config(self):
         return self._config
-    
+
     @config.setter
     def config(self, configuration):
         self.validate_configuration(configuration)
