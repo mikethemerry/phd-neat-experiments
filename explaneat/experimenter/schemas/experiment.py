@@ -7,7 +7,8 @@ data_location = {
         "ys": {
             "type": "string"
         }
-    }
+    },
+    "required":["xs","ys"]
 }
 
 experiment = {
