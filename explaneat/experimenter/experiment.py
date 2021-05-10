@@ -39,15 +39,15 @@ class GenericExperiment(object):
         'logs'
     ]
 
-    def __init__(self, config):
+    def __init__(self, config, confirm_path_creation = True):
         if Path(config).is_file():
             with open(config, 'r') as fp:
                 self.config = json.load(fp)
         else:
             raise FileNotFoundError("Config file not found")
+        self.confirm_path_creation = confirm_path_creation
 
         self.generate_folder_structure()
-
         self.save_configurations()
 
     def generate_folder_structure(self):
@@ -69,8 +69,9 @@ class GenericExperiment(object):
         logger.info("Experiment root path is %s" % self.root_path)
 
         if not os.path.exists(self.config['experiment']['base_location']):
-            if not (input("The base location does not exist, continue? Y/N\nBase location is %s" % self.config['experiment']['base_location']).lower() == "y"):
-                raise FileNotFoundError("The base location does not exist!")
+            if self.confirm_path_creation:
+                if not (input("The base location does not exist, continue? Y/N\nBase location is %s" % self.config['experiment']['base_location']).lower() == "y"):
+                    raise FileNotFoundError("The base location does not exist!")
         # baselocation/[experiment_name]_[time]
         if not os.path.exists(self.root_path):
             logger.info("Creating the root path")
