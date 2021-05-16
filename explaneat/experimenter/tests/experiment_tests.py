@@ -22,13 +22,58 @@ class TestExperimentMethods(unittest.TestCase):
     def test_experiment_config_exists(self):
         with open(self.config_file, 'r') as fp:
             my_config = json.load(fp)
-        with open(os.path.join(self.experiment.path('configurations','experiment.json'))) as fp:
+        with open(os.path.join(self.experiment.path('configurations', self.experiment.prepend_sha('experiment.json')))) as fp:
             saved_config = json.load(fp)
         self.assertEqual(my_config, saved_config)
 
     def tearDown(self):
         if remove_paths:
             shutil.rmtree(test_path_location)
+
+class TestExperimentSHAs(unittest.TestCase):
+    config_file = './test_config.json'
+
+    def test_sha_creation_changes(self):
+        self.experiment1 = experiment.GenericExperiment(self.config_file, confirm_path_creation=False)
+        self.experiment2 = experiment.GenericExperiment(self.config_file, confirm_path_creation=False)
+
+        self.assertNotEqual(
+            self.experiment1.experiment_sha,
+            self.experiment2.experiment_sha
+        )
+
+    def test_sha_creation_stability(self):
+        self.experiment1 = experiment.GenericExperiment(
+            self.config_file, 
+            confirm_path_creation=False,
+            experiment_sha="asdf")
+        self.experiment2 = experiment.GenericExperiment(
+            self.config_file, 
+            confirm_path_creation=False,
+            experiment_sha="asdf")
+
+        self.assertEqual(
+            self.experiment1.experiment_sha,
+            self.experiment2.experiment_sha
+        )
+
+    def test_sha_prepend(self):
+        test_sha = "asdf"
+        test_string = "foo"
+        self.experiment = experiment.GenericExperiment(
+            self.config_file, 
+            confirm_path_creation=False,
+            experiment_sha=test_sha)
+        good_string = "%s-%s"%(test_sha, test_string)
+        self.assertEqual(
+            good_string, 
+            self.experiment.prepend_sha(test_string)
+        )
+
+    def tearDown(self):
+        if remove_paths:
+            shutil.rmtree(test_path_location)
+
 
 if __name__ == '__main__':
     unittest.main()

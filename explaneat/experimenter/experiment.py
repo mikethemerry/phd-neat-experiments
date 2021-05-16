@@ -6,6 +6,8 @@ import logging
 import os
 import datetime
 
+from hashlib import sha256
+
 LOGGING_LEVEL = logging.INFO
 
 logger = logging.getLogger("experimenter")
@@ -39,25 +41,44 @@ class GenericExperiment(object):
         'logs'
     ]
 
-    def __init__(self, config, confirm_path_creation = True):
+    def __init__(self, config, confirm_path_creation = True, experiment_sha=None):
+        self.experiment_sha = experiment_sha
+        self.experiment_start_time = datetime.datetime.now().strftime("%y%m%dT%H%M%S")
+        self.experiment_start_time_with_ms = datetime.datetime.now().strftime("%y%m%dT%H%M%S.%f")
+
         if Path(config).is_file():
             with open(config, 'r') as fp:
                 self.config = json.load(fp)
         else:
             raise FileNotFoundError("Config file not found")
+
+        self.config_string = json.dumps(self.config)
+
         self.confirm_path_creation = confirm_path_creation
 
         self.generate_folder_structure()
         self.save_configurations()
+
+        logger.info("Experiment init for project %s has completed" % self.experiment_sha)
+
+    def run_experiment(self):
+        pass
+
+    def _pre_run_experiment(self):
+        pass
+
+    def _post_run_experiment(self):
+        pass
 
     def generate_folder_structure(self):
         # This will create the standard folder structure for experiments
         # including results, experiment information, etc.
         logger.info("Starting to create folder structures")
 
-        self.experiment_folder_name = "%s_%s" % (
+        self.experiment_folder_name = "%s_%s_%s" % (
             self._config['experiment']['codename'],
-            datetime.datetime.now().strftime("%y%m%dT%H%M%S")
+            self.experiment_start_time,
+            self.experiment_sha
         )
         logger.info("Experiment folder name is %s" %
                     self.experiment_folder_name)
@@ -87,10 +108,13 @@ class GenericExperiment(object):
 
     def path(self, *args):
         return os.path.join(self.root_path, *args)
+    
+    def prepend_sha(self, myString):
+        return "%s-%s"% (self.experiment_sha, myString)
 
     def save_configurations(self):
         logger.info('Saving experiment configuration')
-        with open(self.path('configurations', 'experiment.json'), 'w') as fp:
+        with open(self.path('configurations', self.prepend_sha('experiment.json')), 'w') as fp:
             json.dump(self.config, fp, indent=4, sort_keys=True)
 
     def dict2obj(self, dict1):
@@ -120,6 +144,33 @@ class GenericExperiment(object):
                     logger.error("`{}` is not a file for `{}` - `{}`".format(
                         location[data_set], location, data_set
                     ))
+
+
+    @property
+    def experiment_sha(self):
+        """Experiment SHA is used as random seed for all experiments - it is 
+        defined against the configuration + run time, and the SHA is both a
+        canonical reference to this specific iteration of the run, but also can
+        be used to validate results later
+        """
+
+        if self._experiment_sha is not None:
+            return self._experiment_sha
+        
+        return sha256(("%s-%s" % ( self.config_string, self.experiment_start_time_with_ms)).encode()).hexdigest()[:8]
+    
+    @experiment_sha.setter
+    def experiment_sha(self, sha):
+        if sha is not None:
+            logger.warning("Setting experiment sha to %s - this will replicate results of previous experiments. Only do this if you know what you're doing" % sha)
+        self._experiment_sha = sha
+
+    @experiment_sha.getter
+    def experiment_sha(self):
+        if self._experiment_sha is not None:
+            return self._experiment_sha
+        return sha256(("%s-%s" % ( self.config_string, self.experiment_start_time_with_ms)).encode()).hexdigest()[:8]
+
 
     @property
     def config(self):
