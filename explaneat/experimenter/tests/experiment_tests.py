@@ -2,6 +2,8 @@ import unittest
 from explaneat.experimenter import experiment
 import os
 import shutil
+import logging
+
 
 import json
 
@@ -27,6 +29,10 @@ class TestExperimentMethods(unittest.TestCase):
         self.assertEqual(my_config, saved_config)
 
     def tearDown(self):
+        # Clear logging
+        logger = logging.getLogger("experimenter")
+        logger.handlers.clear() 
+
         if remove_paths:
             shutil.rmtree(test_path_location)
 
@@ -71,6 +77,9 @@ class TestExperimentSHAs(unittest.TestCase):
         )
 
     def tearDown(self):
+        # Clear logging
+        logger = logging.getLogger("experimenter")
+        logger.handlers.clear() 
         if remove_paths:
             shutil.rmtree(test_path_location)
 

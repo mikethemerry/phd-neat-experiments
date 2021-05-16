@@ -8,20 +8,6 @@ import datetime
 
 from hashlib import sha256
 
-LOGGING_LEVEL = logging.INFO
-
-logger = logging.getLogger("experimenter")
-logger.setLevel(LOGGING_LEVEL)
-
-ch = logging.StreamHandler()
-ch.setLevel(LOGGING_LEVEL)
-
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# add formatter to ch
-ch.setFormatter(formatter)
-# add ch to logger
-logger.addHandler(ch)
 
 
 class obj:
@@ -41,7 +27,14 @@ class GenericExperiment(object):
         'logs'
     ]
 
+    file_loggers = {
+        "error.log": logging.ERROR,
+        "info.log": logging.INFO
+    }
+
     def __init__(self, config, confirm_path_creation = True, experiment_sha=None):
+        self.create_stream_logging(logging.INFO)
+
         self.experiment_sha = experiment_sha
         self.experiment_start_time = datetime.datetime.now().strftime("%y%m%dT%H%M%S")
         self.experiment_start_time_with_ms = datetime.datetime.now().strftime("%y%m%dT%H%M%S.%f")
@@ -57,9 +50,11 @@ class GenericExperiment(object):
         self.confirm_path_creation = confirm_path_creation
 
         self.generate_folder_structure()
+        self.create_file_logging()
+
         self.save_configurations()
 
-        logger.info("Experiment init for project %s has completed" % self.experiment_sha)
+        self.logger.info("Experiment init for project %s has completed" % self.experiment_sha)
 
     def run_experiment(self):
         pass
@@ -73,21 +68,21 @@ class GenericExperiment(object):
     def generate_folder_structure(self):
         # This will create the standard folder structure for experiments
         # including results, experiment information, etc.
-        logger.info("Starting to create folder structures")
+        self.logger.info("Starting to create folder structures")
 
         self.experiment_folder_name = "%s_%s_%s" % (
             self._config['experiment']['codename'],
             self.experiment_start_time,
             self.experiment_sha
         )
-        logger.info("Experiment folder name is %s" %
+        self.logger.info("Experiment folder name is %s" %
                     self.experiment_folder_name)
 
         self.root_path = os.path.join(
             self.config['experiment']['base_location'],
             self.experiment_folder_name
         )
-        logger.info("Experiment root path is %s" % self.root_path)
+        self.logger.info("Experiment root path is %s" % self.root_path)
 
         if not os.path.exists(self.config['experiment']['base_location']):
             if self.confirm_path_creation:
@@ -95,16 +90,16 @@ class GenericExperiment(object):
                     raise FileNotFoundError("The base location does not exist!")
         # baselocation/[experiment_name]_[time]
         if not os.path.exists(self.root_path):
-            logger.info("Creating the root path")
+            self.logger.info("Creating the root path")
             os.makedirs(self.root_path)
-        logger.info('Root path created')
+        self.logger.info('Root path created')
 
         for folder in self.folders:
             folder_name = self.path(folder)
-            logger.info('Creating %s' % folder)
+            self.logger.info('Creating %s' % folder)
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
-        logger.info('All folders created')
+        self.logger.info('All folders created')
 
     def path(self, *args):
         return os.path.join(self.root_path, *args)
@@ -113,7 +108,7 @@ class GenericExperiment(object):
         return "%s-%s"% (self.experiment_sha, myString)
 
     def save_configurations(self):
-        logger.info('Saving experiment configuration')
+        self.logger.info('Saving experiment configuration')
         with open(self.path('configurations', self.prepend_sha('experiment.json')), 'w') as fp:
             json.dump(self.config, fp, indent=4, sort_keys=True)
 
@@ -125,26 +120,59 @@ class GenericExperiment(object):
 
     def validate_configuration(self, configuration):
         # check json schema
-        logger.info("Validating configuration schema")
+        self.logger.info("Validating configuration schema")
         validate(configuration, EXPERIMENT_SCHEMA)
-        logger.info("Schema validation passed")
+        self.logger.info("Schema validation passed")
 
         # Check base location exists
         if not Path(configuration['experiment']['base_location']).is_dir():
-            logger.error("`%s` does not exist as base location" % (
+            self.logger.error("`%s` does not exist as base location" % (
                 configuration['experiment']['base_location']
             )
             )
 
         # Check data file locations
         for location_name, location in configuration['data']['locations'].items():
-            logger.info("Checking `%s` for existence" % (location_name))
+            self.logger.info("Checking `%s` for existence" % (location_name))
             for data_set in ['xs', 'ys']:
                 if not Path(location[data_set]).is_file():
-                    logger.error("`{}` is not a file for `{}` - `{}`".format(
+                    self.logger.error("`{}` is not a file for `{}` - `{}`".format(
                         location[data_set], location, data_set
                     ))
 
+
+    def create_stream_logging(self, logging_level = logging.INFO):
+
+        self.logger = logging.getLogger("experimenter")
+        self.logger.setLevel(logging_level)
+
+        ch = logging.StreamHandler()
+        # Do I need this or does it inheret from logger?
+        # ch.setLevel(logging_level)
+
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        # add formatter to ch
+        ch.setFormatter(formatter)
+        # add ch to logger
+        self.logger.addHandler(ch)
+
+    def create_file_logging(self):
+        self.logger.info("Creating file logging")
+        for file, level in self.file_loggers.items():
+            file_handler = logging.FileHandler(self.path("logs", self.prepend_sha(file)))
+            
+            # Do I need this or does it inheret from logger?
+            file_handler.setLevel(level)
+
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            # add formatter to ch
+            file_handler.setFormatter(formatter)
+            # add ch to logger
+            self.logger.addHandler(file_handler)
+
+        self.logger.info("Finished creating file logging")
 
     @property
     def experiment_sha(self):
@@ -162,7 +190,7 @@ class GenericExperiment(object):
     @experiment_sha.setter
     def experiment_sha(self, sha):
         if sha is not None:
-            logger.warning("Setting experiment sha to %s - this will replicate results of previous experiments. Only do this if you know what you're doing" % sha)
+            self.logger.warning("Setting experiment sha to %s - this will replicate results of previous experiments. Only do this if you know what you're doing" % sha)
         self._experiment_sha = sha
 
     @experiment_sha.getter
