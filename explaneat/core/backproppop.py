@@ -9,7 +9,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from explaneat.core.neuralneat import NeuralNeat as nneat
+
+
 from explaneat.core.backprop import NeatNet
+
+# from explaneat.core.neuralneat import NeuralNeat
 
 ## Replace neat-based reporting with explaneat extensions of the reporting
 ## methods with hooks regarding backprop
@@ -42,11 +47,11 @@ class BackpropPopulation(Population):
         self.config = config
 
         if not type(xs) is torch.Tensor:
-            self.xs = torch.tensor(xs)
+            self.xs = torch.tensor(xs, dtype=torch.float64)
         else:
             self.xs = xs
         if not type(ys) is torch.Tensor:
-            self.ys = torch.tensor(ys)
+            self.ys = torch.tensor(ys, dtype=torch.float64)
         else:
             self.ys = ys
 
@@ -94,20 +99,44 @@ class BackpropPopulation(Population):
         improvements = []
         for k, genome in self.population.items():
 
-            net = NeatNet(genome, self.config, criterion=self.criterion)
+            # net = NeatNet(genome, self.config, criterion=self.criterion)
+            net = nneat(genome, self.config, criterion=nn.BCEWithLogitsLoss())
+            optimizer = optim.Adadelta(net.parameters())
+
+            # # optimizer.zero_grad()
+            # # output = net(x_input)
+            # # loss = loss_fn(result, expected_result)
+
+
+            # # net = NeuralNeat(genome, self.config)
             
-            preBPLoss = net.meanLoss(xs, ys)
+            # preBPLoss = net.meanLoss(xs, ys)
             
-            net.optimise(xs, ys, nEpochs)
+            # net.optimise(xs, ys, nEpochs)
             
-            postBPLoss = net.meanLoss(xs, ys)
-            postLosses.append(postBPLoss)
+            # postBPLoss = net.meanLoss(xs, ys)
             
+            # lossDiff = postBPLoss - preBPLoss
+
+            optimizer.zero_grad()
+            losses = []
+            preBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
+            for i in range(nEpochs):
+                preds = net.forward(xs)
+                loss = F.mse_loss(preds, ys).sqrt()
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
+                losses.append(loss)  
+            # losses[-10:]
+            postBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
             lossDiff = postBPLoss - preBPLoss
 
             losses.append((preBPLoss, postBPLoss, lossDiff))
-            improvements.append(lossDiff)
-            net.updateGenomeWeights(genome)
+            improvements.append(lossDiff.item())
+            net.update_genome_weights() # Not updating?
+            postLosses.append(postBPLoss.item())
+
 
         print('mean improvement: %s' % mean(improvements))
         print('best improvement: %s' % min(improvements))
@@ -152,7 +181,6 @@ class BackpropPopulation(Population):
             for genome_id, g in self.population.items():
                 if best is None or g.fitness > best.fitness:
                     best = g
-
             with MethodTimer('post evaluate'):
                 self.reporters.post_evaluate(self.config, self.population, self.species, best)
 

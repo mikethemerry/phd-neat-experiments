@@ -14,7 +14,7 @@ LAYER_TYPE_OUTPUT = "OUTPUT"
 
 class NeuralNeat(nn.Module):
     ## Creates a PyTorch Neural Network from an ExplaNEAT genome
-    def __init__(self, genome, config):
+    def __init__(self, genome, config, criterion=nn.BCELoss(), optimiser = optim.Adadelta):
         super(NeuralNeat, self).__init__()  # just run the init of parent class (nn.Module)
         self.genome = genome
         layers = self.parse_genome_to_layers(genome, config)
@@ -32,6 +32,10 @@ class NeuralNeat(nn.Module):
 
         for b_id, b in self.biases.items():
             self.register_parameter(name = "bias_%s"%b_id, param=b)
+
+        self.criterion = criterion
+        self.optimiser = optimiser
+        self.optimizer = self.optimiser
 
         # x = F.relu(self.fc1(x))
 
@@ -170,7 +174,7 @@ class NeuralNeat(nn.Module):
     def update_genome_weights(self):
         for layer_id, layer in self.layers.items():
             for genome_location, weight_location in layer['input_map'].items():
-                self.genome.connections[genome_location].new_weight = self.weights[layer_id][weight_location[0]][weight_location[1]]
+                self.genome.connections[genome_location].new_weight = self.weights[layer_id][weight_location[0]][weight_location[1]].item()
             # layer_offset = 0
             # # Check every layer and every node for connections
             # for input_layer_id in layer['input_layers']:
@@ -204,6 +208,8 @@ class NeuralNeat(nn.Module):
         self._outputs = {}
         for layer_id in range(self.n_layers):
             layer_input = None
+
+            layer_weight = None
             layer_type = self.layer_types[layer_id]
 
             # print(layer_id)
@@ -212,10 +218,29 @@ class NeuralNeat(nn.Module):
             if layer_type == LAYER_TYPE_INPUT:
                 self._outputs[layer_id] = x
                 continue
+            ## handle skip layers
             if layer_type == LAYER_TYPE_CONNECTED:
-                layer_input = torch.cat([self._outputs[ii] for ii in self.layer_inputs[layer_id]])
+                # print(self.layer_inputs)
+                
+                # print(self.outputs)
+                layer_input = torch.cat([self._outputs[ii] for ii in self.layer_inputs[layer_id]], dim=1)
+            ## handle skip layers
             if layer_type == LAYER_TYPE_OUTPUT:
-                layer_input = torch.cat([self._outputs[ii] for ii in self.layer_inputs[layer_id]])
+                # print("inputs")
+                # print(self.layer_inputs)
+                # print("outputs")
+                
+                # print(self._outputs)
+
+                try:
+                    layer_input = torch.cat([self._outputs[ii] for ii in self.layer_inputs[layer_id]], dim=1)
+                except:
+                    print(layer_type)
+                    print(layer_id)
+                    print(self._outputs)
+                    print("---------------")
+                    print(self.layers)
+                    layer_input = torch.cat([self._outputs[ii] for ii in self.layer_inputs[layer_id]])
 
             # print(layer_input)
             # print(self.weights[layer_id])
@@ -225,3 +250,26 @@ class NeuralNeat(nn.Module):
 
             if layer_type == LAYER_TYPE_OUTPUT:
                 return self._outputs[layer_id]
+
+    def optimise(self, xs, ys, nEpochs = 100):
+    
+        USE_CUDA = torch.cuda.is_available()
+        # USE_CUDA = False
+        device = torch.device("cuda:0" if USE_CUDA else "cpu")
+        if not type(xs) is torch.Tensor:
+            xs = torch.tensor(xs).to(device)
+        if not type(ys) is torch.Tensor:
+            ys = torch.tensor(ys).to(device)
+
+        # print('going to train for %s epochs' % nEpochs)
+        for epoch in range(nEpochs):
+            for inX in range(len(xs)):
+                self.optimizer.zero_grad()   # zero the gradient buffers
+
+                output = self.forward(xs[inX])
+                target = ys[inX].view(-1)
+                target = target.to('cpu')
+                loss = self.criterion(output.float(), target.float())
+                loss.backward()
+                self.optimizer.step()
+    optimize = optimise
