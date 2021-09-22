@@ -135,3 +135,5 @@ class ExperimentReporter(object):
             os.makedirs(self.outputLocation)
         with open(os.path.join(self.outputLocation, 'generationRecords.json'), 'w') as fp:
             json.dump(self.generationRecords, fp)
+
+

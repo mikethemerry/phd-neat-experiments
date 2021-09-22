@@ -7,18 +7,32 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from explaneat.core.errors import GenomeNotValidError
 
 LAYER_TYPE_CONNECTED = "CONNECTED"
 LAYER_TYPE_INPUT = "INPUT"
 LAYER_TYPE_OUTPUT = "OUTPUT"
+
+
 
 class NeuralNeat(nn.Module):
     ## Creates a PyTorch Neural Network from an ExplaNEAT genome
     def __init__(self, genome, config, criterion=nn.BCELoss(), optimiser = optim.Adadelta):
         super(NeuralNeat, self).__init__()  # just run the init of parent class (nn.Module)
         self.genome = genome
-        layers = self.parse_genome_to_layers(genome, config)
+        self.config = config
+        self.valid = self.is_valid()
+        if not self.valid:
+            raise GenomeNotValidError()
+        try:
+            layers, node_tracker = self.parse_genome_to_layers(genome, config)
+        except Exception as e:
+            print(e)
+            print(self.genome)
+            print(self.valid)
+            exit()
         self.layers = layers
+        self.node_tracker = node_tracker
         self.weights = {layer_id: self._tt(layer['input_weights'].copy()) for layer_id, layer in layers.items()}
         self.biases = {layer_id: self._tt(layer['bias'].copy()) for layer_id, layer in layers.items()}
         self.layer_types = {layer_id: layer['layer_type'] for layer_id, layer in layers.items()}
@@ -122,8 +136,18 @@ class NeuralNeat(nn.Module):
             # Handle output layer "edge" case
             if layer['is_output_layer']:
                 layer['out_weights'] = []
-                layer['bias'] = [genome.nodes[node_id].bias for node_id, node in layer['nodes'].items()]
-                layer['in_weights'] = [[0 for __ in layers[layer_id-1]['nodes']] for _ in layer['nodes']]
+                try:
+                    layer['bias'] = [genome.nodes[node_id].bias for node_id, node in layer['nodes'].items()]
+                except Exception as e:
+                    print(e)
+                    # print("node id:", node_id)
+                    # print(vars(self))
+                try:
+                    layer['in_weights'] = [[0 for __ in layers[layer_id-1]['nodes']] for _ in layer['nodes']]
+                except Exception as e:
+                    print(e)
+                    print(self.genome)
+                    exit()
             # Handle input layer "edge" case
             elif layer['is_input_layer']:
                 layer['in_weights'] = []
@@ -169,7 +193,7 @@ class NeuralNeat(nn.Module):
                             layer['input_map'][(node_id, node_output_id)] = (in_weight_location, out_weight_location)
                 layer_offset += len(input_layer['nodes'])
 
-        return layers
+        return layers, node_tracker
 
     def update_genome_weights(self):
         for layer_id, layer in self.layers.items():
@@ -246,7 +270,19 @@ class NeuralNeat(nn.Module):
             # print(self.weights[layer_id])
             # print(self.biases[layer_id])
 
-            self._outputs[layer_id] = torch.sigmoid( torch.matmul(layer_input, self.weights[layer_id]) + self.biases[layer_id] )
+            try:
+                self._outputs[layer_id] = torch.sigmoid( torch.matmul(layer_input, self.weights[layer_id]) + self.biases[layer_id] )
+            except Exception as e:
+                print(e)
+                print("layer id:", layer_id)
+                print("layer input:", layer_id)
+                print(vars(self))
+
+                print("======================")
+                print(self.layers)
+                print(self.genome)
+                print(self.is_valid(True))
+                print("---===---===---===")
 
             if layer_type == LAYER_TYPE_OUTPUT:
                 return self._outputs[layer_id]
@@ -273,3 +309,73 @@ class NeuralNeat(nn.Module):
                 loss.backward()
                 self.optimizer.step()
     optimize = optimise
+
+    def is_valid(self, print_reached_nodes=False):
+        # Some nodes can't be reached in feed forward from inputs
+        # They need to be found and removed
+        # Will use breadth-first search to span network from feed forward
+        # and identify all reached nodes. If reached nodes don't match list of
+        # all nodes then some have no connection to input, so are invalid
+        node_tracker = {node_id:{'depth':0, 'output_ids':[], 'input_ids':[]} for node_id in self.genome.nodes}
+
+        for node_id in self.config.genome_config.input_keys:
+            node_tracker[node_id] = {'depth':0, 'output_ids':[], 'input_ids':[]}
+
+        for connection in self.genome.connections:
+            node_tracker[connection[0]]['output_ids'].append(connection[1])
+            node_tracker[connection[1]]['input_ids'].append(connection[0])
+
+        reached_nodes = []
+
+        node_stack = []
+
+
+        ### Check that the inputs can reach all nodes
+        # Instantiate stack with depth==0 nodes
+        for node_id in self.config.genome_config.input_keys:
+            node_stack.append(node_id)
+        
+        while len(node_stack) > 0:
+            reached_nodes.append(node_stack[0])
+            for node_id in node_tracker[node_stack[0]]['output_ids']:
+                node_stack.append(node_id)
+            del(node_stack[0])
+
+        if print_reached_nodes:
+            print("the reached nodes are")
+            print(reached_nodes)
+
+        
+        for node_id in node_tracker:
+            if not node_id in reached_nodes:
+                # print(reached_nodes)
+                # print(node_tracker)
+                # print("I can't reach this node going forwards {}".format(node_id))
+                return False
+
+        
+        ### Check that the outputs can reach all nodes
+        # Instantiate stack with depth==0 nodes
+        reached_nodes = []
+
+        node_stack = []
+        for node_id in self.config.genome_config.output_keys:
+            node_stack.append(node_id)
+        
+        while len(node_stack) > 0:
+            reached_nodes.append(node_stack[0])
+            for node_id in node_tracker[node_stack[0]]['input_ids']:
+                node_stack.append(node_id)
+            del(node_stack[0])
+
+        if print_reached_nodes:
+            print("the reached nodes are")
+            print(reached_nodes)
+
+        for node_id in node_tracker:
+            if not node_id in reached_nodes:
+                # print(reached_nodes)
+                # print(node_tracker)
+                # print("I can't reach this node going backwards{}".format(node_id))
+                return False
+        return True

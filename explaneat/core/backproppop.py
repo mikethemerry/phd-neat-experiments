@@ -14,6 +14,8 @@ from explaneat.core.neuralneat import NeuralNeat as nneat
 
 from explaneat.core.backprop import NeatNet
 
+from explaneat.core.errors import GenomeNotValidError
+
 # from explaneat.core.neuralneat import NeuralNeat
 
 ## Replace neat-based reporting with explaneat extensions of the reporting
@@ -100,23 +102,20 @@ class BackpropPopulation(Population):
         for k, genome in self.population.items():
 
             # net = NeatNet(genome, self.config, criterion=self.criterion)
-            net = nneat(genome, self.config, criterion=nn.BCEWithLogitsLoss())
+            try:
+                net = nneat(genome, self.config, criterion=nn.BCEWithLogitsLoss())
+            except GenomeNotValidError:
+                print("This net isn't valid")
+                preBPLoss = 0
+                postBPLoss = 99999
+                lossDiff = postBPLoss - preBPLoss
+                improvements.append(lossDiff)
+                losses.append((preBPLoss, postBPLoss, lossDiff))
+                postLosses.append(postBPLoss)
+                continue
+                
+
             optimizer = optim.Adadelta(net.parameters())
-
-            # # optimizer.zero_grad()
-            # # output = net(x_input)
-            # # loss = loss_fn(result, expected_result)
-
-
-            # # net = NeuralNeat(genome, self.config)
-            
-            # preBPLoss = net.meanLoss(xs, ys)
-            
-            # net.optimise(xs, ys, nEpochs)
-            
-            # postBPLoss = net.meanLoss(xs, ys)
-            
-            # lossDiff = postBPLoss - preBPLoss
 
             optimizer.zero_grad()
             losses = []
