@@ -14,11 +14,11 @@ LAYER_TYPE_INPUT = "INPUT"
 LAYER_TYPE_OUTPUT = "OUTPUT"
 
 
-
 class NeuralNeat(nn.Module):
-    ## Creates a PyTorch Neural Network from an ExplaNEAT genome
-    def __init__(self, genome, config, criterion=nn.BCELoss(), optimiser = optim.Adadelta):
-        super(NeuralNeat, self).__init__()  # just run the init of parent class (nn.Module)
+    # Creates a PyTorch Neural Network from an ExplaNEAT genome
+    def __init__(self, genome, config, criterion=nn.BCELoss(), optimiser=optim.Adadelta):
+        # just run the init of parent class (nn.Module)
+        super(NeuralNeat, self).__init__()
         self.genome = genome
         self.config = config
         self.valid = self.is_valid()
@@ -33,32 +33,42 @@ class NeuralNeat(nn.Module):
             exit()
         self.layers = layers
         self.node_tracker = node_tracker
-        self.weights = {layer_id: self._tt(layer['input_weights'].copy()) for layer_id, layer in layers.items()}
-        self.biases = {layer_id: self._tt(layer['bias'].copy()) for layer_id, layer in layers.items()}
-        self.layer_types = {layer_id: layer['layer_type'] for layer_id, layer in layers.items()}
-        self.layer_inputs = {layer_id: layer['input_layers'] for layer_id, layer in layers.items()}
+        self.weights = {layer_id: self._tt(
+            layer['input_weights'].copy()) for layer_id, layer in layers.items()}
+        self.biases = {layer_id: self._tt(
+            layer['bias'].copy()) for layer_id, layer in layers.items()}
+        self.layer_types = {layer_id: layer['layer_type']
+                            for layer_id, layer in layers.items()}
+        self.layer_inputs = {layer_id: layer['input_layers']
+                             for layer_id, layer in layers.items()}
         self.n_layers = len(layers)
 
         self._outputs = None
 
         for w_id, w in self.weights.items():
-            self.register_parameter(name ="weight_%s"%w_id, param=w)
+            self.register_parameter(name="weight_%s" % w_id, param=w)
 
         for b_id, b in self.biases.items():
-            self.register_parameter(name = "bias_%s"%b_id, param=b)
+            self.register_parameter(name="bias_%s" % b_id, param=b)
 
         self.criterion = criterion
         self.optimiser = optimiser
         self.optimizer = self.optimiser
 
-        # x = F.relu(self.fc1(x))
+        self.node_mappings = NodeMapping(genome, config)
+        self.layer_mappings = None
 
-        # self.fc2 = nn.Linear(512, 10)
+    def _create_node_map(self, node):
+        pass
 
     def parse_genome_to_layers(self, genome, config):
-        node_tracker = {node_id:{'depth':0, 'output_ids':[], 'input_ids':[]} for node_id in genome.nodes}
+        node_tracker = {node_id: {'depth': 0,
+                                  'output_ids': [],
+                                  'input_ids': [],
+                                  'depths': []} for node_id in genome.nodes}
         for node_id in config.genome_config.input_keys:
-            node_tracker[node_id] = {'depth':0, 'output_ids':[], 'input_ids':[]}
+            node_tracker[node_id] = {'depth': 0,
+                                     'output_ids': [], 'input_ids': []}
         trace_stack = [node_id for node_id in config.genome_config.input_keys]
 
         for connection in genome.connections:
@@ -70,12 +80,13 @@ class NeuralNeat(nn.Module):
             my_depth = node_tracker[trace]['depth']
             next_depth = my_depth + 1
             for output_id in node_tracker[trace]['output_ids']:
-                node_tracker[output_id]['depth'] = max(node_tracker[output_id]['depth'], next_depth)
+                node_tracker[output_id]['depth'] = max(
+                    node_tracker[output_id]['depth'], next_depth)
                 trace_stack.append(output_id)
             del(trace_stack[0])
 
         for node_id, node in node_tracker.items():
-            node['output_layers']=[]
+            node['output_layers'] = []
             node['needs_skip'] = False
             node['id'] = node_id
             for output_id in node['output_ids']:
@@ -95,11 +106,11 @@ class NeuralNeat(nn.Module):
         for node_id, node in node_tracker.items():
             if not node['depth'] in layers:
                 layers[node['depth']] = {
-                    'nodes':{node_id:node}
+                    'nodes': {node_id: node}
                 }
             else:
                 layers[node['depth']]['nodes'][node_id] = node
-                
+
         # Ensure all nodes have a layer index
         for layer_id, layer in layers.items():
             layer_index = 0
@@ -107,7 +118,6 @@ class NeuralNeat(nn.Module):
                 node['layer_index'] = layer_index
                 layer_index += 1
 
-        
         for layer_id, layer in layers.items():
             layer['is_output_layer'] = False
             layer['is_input_layer'] = False
@@ -123,27 +133,30 @@ class NeuralNeat(nn.Module):
                 layer['layer_type'] = LAYER_TYPE_INPUT
 
             layer['input_layers'] = []
-            ## Compute the shape of required inputs
+            # Compute the shape of required inputs
             for node_id, node in layer['nodes'].items():
                 for in_layer in node['input_layers']:
                     if in_layer not in layer['input_layers']:
                         layer['input_layers'].append(in_layer)
             layer['input_layers'].sort()
-            layer['input_shape'] = sum(len(layers[jj]['nodes']) for jj in layer['input_layers'])
-            layer['weights_shape'] = (layer['input_shape'], len(layer['nodes']))
-
+            layer['input_shape'] = sum(len(layers[jj]['nodes'])
+                                       for jj in layer['input_layers'])
+            layer['weights_shape'] = (
+                layer['input_shape'], len(layer['nodes']))
 
             # Handle output layer "edge" case
             if layer['is_output_layer']:
                 layer['out_weights'] = []
                 try:
-                    layer['bias'] = [genome.nodes[node_id].bias for node_id, node in layer['nodes'].items()]
+                    layer['bias'] = [genome.nodes[node_id].bias for node_id,
+                                     node in layer['nodes'].items()]
                 except Exception as e:
                     print(e)
                     # print("node id:", node_id)
                     # print(vars(self))
                 try:
-                    layer['in_weights'] = [[0 for __ in layers[layer_id-1]['nodes']] for _ in layer['nodes']]
+                    layer['in_weights'] = [
+                        [0 for __ in layers[layer_id-1]['nodes']] for _ in layer['nodes']]
                 except Exception as e:
                     print(e)
                     print(self.genome)
@@ -152,21 +165,24 @@ class NeuralNeat(nn.Module):
             elif layer['is_input_layer']:
                 layer['in_weights'] = []
                 layer['bias'] = []
-                layer['out_weights'] = [[0 for __ in layers[layer_id+1]['nodes']] for _ in layer['nodes']]
+                layer['out_weights'] = [[0 for __ in layers[layer_id+1]['nodes']]
+                                        for _ in layer['nodes']]
             # Handle generic case
             else:
-                layer['out_weights'] = [[0 for __ in layers[layer_id+1]['nodes']] for _ in layer['nodes']]
-                layer['in_weights'] = [[0 for __ in layers[layer_id-1]['nodes']] for _ in layer['nodes']]
+                layer['out_weights'] = [[0 for __ in layers[layer_id+1]['nodes']]
+                                        for _ in layer['nodes']]
+                layer['in_weights'] = [[0 for __ in layers[layer_id-1]['nodes']]
+                                       for _ in layer['nodes']]
 
-                layer['bias'] = [genome.nodes[node_id].bias for node_id, node in layer['nodes'].items()]
+                layer['bias'] = [genome.nodes[node_id].bias for node_id,
+                                 node in layer['nodes'].items()]
                 # else:
-                    # layer['bias'] = [0 for _ in layer['nodes']]
-            
-            layer_index = 0          
+                # layer['bias'] = [0 for _ in layer['nodes']]
+
+            layer_index = 0
             for node_id, node in layer['nodes'].items():
                 node['layer_index'] = layer_index
                 layer_index += 1
-
 
             # Set up current weights
             layer['input_weights'] = np.zeros(layer['weights_shape'])
@@ -181,16 +197,19 @@ class NeuralNeat(nn.Module):
                             node_output = layer['nodes'][node_output_id]
                             # I HAVE THIS NODE!
                             # What is it's weight?
-                            connection = genome.connections[(node_id, node_output_id)]
+                            connection = genome.connections[(
+                                node_id, node_output_id)]
 
                             if not connection.enabled:
                                 continue
                             connection_weight = connection.weight
 
-                            in_weight_location = layer_offset + node['layer_index']
+                            in_weight_location = layer_offset + \
+                                node['layer_index']
                             out_weight_location = node_output['layer_index']
                             layer['input_weights'][in_weight_location][out_weight_location] = connection_weight
-                            layer['input_map'][(node_id, node_output_id)] = (in_weight_location, out_weight_location)
+                            layer['input_map'][(node_id, node_output_id)] = (
+                                in_weight_location, out_weight_location)
                 layer_offset += len(input_layer['nodes'])
 
         return layers, node_tracker
@@ -202,7 +221,8 @@ class NeuralNeat(nn.Module):
                 # print(self.genome.connections[genome_location])
                 # print(self.weights[layer_id][weight_location[0]][weight_location[1]].item())
                 # self.genome.connections[genome_location].new_weight = self.weights[layer_id][weight_location[0]][weight_location[1]].item()
-                self.genome.connections[genome_location].weight = self.weights[layer_id][weight_location[0]][weight_location[1]].item()
+                self.genome.connections[genome_location].weight = self.weights[layer_id][weight_location[0]
+                                                                                         ][weight_location[1]].item()
             # layer_offset = 0
             # # Check every layer and every node for connections
             # for input_layer_id in layer['input_layers']:
@@ -226,11 +246,10 @@ class NeuralNeat(nn.Module):
             #                 self.genome.connections[(node_id, node_output_id)].weight = self.weights[layer_id][in_weight_location][out_weight_location]
                 # layer_offset += len(input_layer['nodes'])
 
-    
-
     @staticmethod
     def _tt(mat):
-        return torch.nn.Parameter(torch.tensor(mat,dtype=torch.float64), requires_grad=True)
+        return torch.nn.Parameter(torch.tensor(mat, dtype=torch.float64), requires_grad=True)
+
     def forward(self, x):
         # print("running forward")
         self._outputs = {}
@@ -246,36 +265,40 @@ class NeuralNeat(nn.Module):
             if layer_type == LAYER_TYPE_INPUT:
                 self._outputs[layer_id] = x
                 continue
-            ## handle skip layers
+            # handle skip layers
             if layer_type == LAYER_TYPE_CONNECTED:
                 # print(self.layer_inputs)
-                
+
                 # print(self.outputs)
-                layer_input = torch.cat([self._outputs[ii] for ii in self.layer_inputs[layer_id]], dim=1)
-            ## handle skip layers
+                layer_input = torch.cat(
+                    [self._outputs[ii] for ii in self.layer_inputs[layer_id]], dim=1)
+            # handle skip layers
             if layer_type == LAYER_TYPE_OUTPUT:
                 # print("inputs")
                 # print(self.layer_inputs)
                 # print("outputs")
-                
+
                 # print(self._outputs)
 
                 try:
-                    layer_input = torch.cat([self._outputs[ii] for ii in self.layer_inputs[layer_id]], dim=1)
+                    layer_input = torch.cat(
+                        [self._outputs[ii] for ii in self.layer_inputs[layer_id]], dim=1)
                 except:
                     print(layer_type)
                     print(layer_id)
                     print(self._outputs)
                     print("---------------")
                     print(self.layers)
-                    layer_input = torch.cat([self._outputs[ii] for ii in self.layer_inputs[layer_id]])
+                    layer_input = torch.cat(
+                        [self._outputs[ii] for ii in self.layer_inputs[layer_id]])
 
             # print(layer_input)
             # print(self.weights[layer_id])
             # print(self.biases[layer_id])
 
             try:
-                self._outputs[layer_id] = torch.sigmoid( torch.matmul(layer_input, self.weights[layer_id]) + self.biases[layer_id] )
+                self._outputs[layer_id] = torch.sigmoid(torch.matmul(
+                    layer_input, self.weights[layer_id]) + self.biases[layer_id])
             except Exception as e:
                 print(e)
                 print("layer id:", layer_id)
@@ -291,8 +314,8 @@ class NeuralNeat(nn.Module):
             if layer_type == LAYER_TYPE_OUTPUT:
                 return self._outputs[layer_id]
 
-    def optimise(self, xs, ys, nEpochs = 100):
-    
+    def optimise(self, xs, ys, nEpochs=100):
+
         USE_CUDA = torch.cuda.is_available()
         # USE_CUDA = False
         device = torch.device("cuda:0" if USE_CUDA else "cpu")
@@ -320,10 +343,12 @@ class NeuralNeat(nn.Module):
         # Will use breadth-first search to span network from feed forward
         # and identify all reached nodes. If reached nodes don't match list of
         # all nodes then some have no connection to input, so are invalid
-        node_tracker = {node_id:{'depth':0, 'output_ids':[], 'input_ids':[]} for node_id in self.genome.nodes}
+        node_tracker = {node_id: {'depth': 0, 'output_ids': [],
+                                  'input_ids': []} for node_id in self.genome.nodes}
 
         for node_id in self.config.genome_config.input_keys:
-            node_tracker[node_id] = {'depth':0, 'output_ids':[], 'input_ids':[]}
+            node_tracker[node_id] = {'depth': 0,
+                                     'output_ids': [], 'input_ids': []}
 
         for connection in self.genome.connections:
             node_tracker[connection[0]]['output_ids'].append(connection[1])
@@ -333,12 +358,11 @@ class NeuralNeat(nn.Module):
 
         node_stack = []
 
-
-        ### Check that the inputs can reach all nodes
+        # Check that the inputs can reach all nodes
         # Instantiate stack with depth==0 nodes
         for node_id in self.config.genome_config.input_keys:
             node_stack.append(node_id)
-        
+
         while len(node_stack) > 0:
             reached_nodes.append(node_stack[0])
             for node_id in node_tracker[node_stack[0]]['output_ids']:
@@ -349,7 +373,6 @@ class NeuralNeat(nn.Module):
             print("the reached nodes are")
             print(reached_nodes)
 
-        
         for node_id in node_tracker:
             if not node_id in reached_nodes:
                 # print(reached_nodes)
@@ -357,15 +380,14 @@ class NeuralNeat(nn.Module):
                 # print("I can't reach this node going forwards {}".format(node_id))
                 return False
 
-        
-        ### Check that the outputs can reach all nodes
+        # Check that the outputs can reach all nodes
         # Instantiate stack with depth==0 nodes
         reached_nodes = []
 
         node_stack = []
         for node_id in self.config.genome_config.output_keys:
             node_stack.append(node_id)
-        
+
         while len(node_stack) > 0:
             reached_nodes.append(node_stack[0])
             for node_id in node_tracker[node_stack[0]]['input_ids']:
@@ -383,3 +405,96 @@ class NeuralNeat(nn.Module):
                 # print("I can't reach this node going backwards{}".format(node_id))
                 return False
         return True
+
+
+class NodeMapping(object):
+    """Holds all information regarding the node mapping for a NeuralNeat network
+
+    """
+
+    def __init__(self,
+                 genome,
+                 config):
+        self.genome = genome
+        self.config = config
+
+        self._create_node_mappings()
+
+    def _create_node_mappings(self):
+        """Creates an object of node mappings that covers depths
+        necessity of skip layers; input nodes; output nodes; whether or not the
+        node is active, and valid
+        """
+        # Alias
+        genome = self.genome
+        genome_config = self.config.genome_config
+
+        node_keys = [node_id for node_id in genome.nodes] + \
+            genome_config.input_keys
+
+        # Node tracker is used in middle computations
+        node_tracker = {node_id: {'depth': 0,
+                                  'output_ids': [],
+                                  'input_ids': [],
+                                  'depths': [],
+                                  'on_path_to_output': False,
+                                  'on_path_to_input': False,
+                                  'is_input': False,
+                                  'is_output': False,
+                                  'is_valid': False} for node_id in node_keys}
+        # index all connections to the nodes
+        for connection in genome.connections:
+            # Check for activation
+            if genome.connections[connection].enabled == True:
+                node_tracker[connection[0]]['output_ids'].append(connection[1])
+                node_tracker[connection[1]]['input_ids'].append(connection[0])
+        # Trace stack for breadth-first graph traversal
+        trace_stack = [
+            node_id for node_id in genome_config.input_keys]
+        # Set default depth for input keys
+        for input_node in genome_config.input_keys:
+            node_tracker[input_node]['depth'] = 0
+            node_tracker[input_node]['is_input'] = True
+        for output_node in genome_config.output_keys:
+            node_tracker[output_node]['is_output'] = True
+
+        # Breadth first search input->output
+        while len(trace_stack) > 0:
+            # pick first node on stack
+            trace = trace_stack[0]
+            # Pull current depth
+            node_depth = node_tracker[trace]['depth']
+            next_depth = node_depth+1
+            # Apply next depth to all output nodes
+            for output_id in node_tracker[trace]['output_ids']:
+                # Add to search
+                trace_stack.append(output_id)
+                # Set new depth
+                node_tracker[output_id]['depths'].append(next_depth)
+                node_tracker[output_id]['depth'] = max(
+                    node_tracker[output_id]['depths'])
+                # Have found in path
+                node_tracker[output_id]['on_path_to_output'] = True
+
+            # Remove from list
+            del(trace_stack[0])
+
+        # Breadth first search output->input to determine reachability
+        trace_stack = [node_id for node_id in genome_config.output_keys]
+        while len(trace_stack) > 0:
+            trace = trace_stack[0]
+            for input_id in node_tracker[trace]['input_ids']:
+                # Add to search
+                trace_stack.append(input_id)
+                # Have found in path
+                node_tracker[input_id]['on_path_to_input'] = True
+            del(trace_stack[0])
+
+        # Do final computations of node properties
+        for _, node in node_tracker.items():
+            if (node['is_input'] or node['is_output'] or
+                    (node['on_path_to_input'] and node['on_path_to_output'])):
+                node['is_valid'] = True
+
+        # Set node_mappings
+        self.node_mappings = node_tracker
