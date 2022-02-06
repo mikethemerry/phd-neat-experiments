@@ -198,7 +198,11 @@ class NeuralNeat(nn.Module):
     def update_genome_weights(self):
         for layer_id, layer in self.layers.items():
             for genome_location, weight_location in layer['input_map'].items():
-                self.genome.connections[genome_location].new_weight = self.weights[layer_id][weight_location[0]][weight_location[1]].item()
+                # print(genome_location, weight_location)
+                # print(self.genome.connections[genome_location])
+                # print(self.weights[layer_id][weight_location[0]][weight_location[1]].item())
+                # self.genome.connections[genome_location].new_weight = self.weights[layer_id][weight_location[0]][weight_location[1]].item()
+                self.genome.connections[genome_location].weight = self.weights[layer_id][weight_location[0]][weight_location[1]].item()
             # layer_offset = 0
             # # Check every layer and every node for connections
             # for input_layer_id in layer['input_layers']:

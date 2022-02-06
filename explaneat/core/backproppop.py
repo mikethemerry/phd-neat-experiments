@@ -18,8 +18,8 @@ from explaneat.core.errors import GenomeNotValidError
 
 # from explaneat.core.neuralneat import NeuralNeat
 
-## Replace neat-based reporting with explaneat extensions of the reporting
-## methods with hooks regarding backprop
+# Replace neat-based reporting with explaneat extensions of the reporting
+# methods with hooks regarding backprop
 # from neat.reporting import ReporterSet
 # from neat.reporting import BaseReporter
 from explaneat.core.experiment import ExperimentReporterSet as ReporterSet
@@ -32,19 +32,20 @@ from neat.population import Population
 
 import logging
 
+
 class BackpropPopulation(Population):
     """
     This class extends the core NEAT implementation with a backprop method
     """
 
-    def __init__(self, 
-                config, 
-                xs, 
-                ys, 
-                initial_state=None, 
-                criterion=nn.BCELoss(), 
-                optimizer = optim.Adadelta,
-                nEpochs = 100):
+    def __init__(self,
+                 config,
+                 xs,
+                 ys,
+                 initial_state=None,
+                 criterion=nn.BCELoss(),
+                 optimizer=optim.Adadelta,
+                 nEpochs=100):
         self.reporters = ReporterSet()
         self.config = config
 
@@ -62,7 +63,8 @@ class BackpropPopulation(Population):
 
         self.nEpochs = nEpochs
 
-        stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
+        stagnation = config.stagnation_type(
+            config.stagnation_config, self.reporters)
         self.reproduction = config.reproduction_type(config.reproduction_config,
                                                      self.reporters,
                                                      stagnation)
@@ -82,7 +84,8 @@ class BackpropPopulation(Population):
             self.population = self.reproduction.create_new(config.genome_type,
                                                            config.genome_config,
                                                            config.pop_size)
-            self.species = config.species_set_type(config.species_set_config, self.reporters)
+            self.species = config.species_set_type(
+                config.species_set_config, self.reporters)
             self.generation = 0
             self.species.speciate(config, self.population, self.generation)
         else:
@@ -90,7 +93,7 @@ class BackpropPopulation(Population):
 
         self.best_genome = None
 
-    def backpropagate(self, xs, ys, nEpochs = 5):
+    def backpropagate(self, xs, ys, nEpochs=5):
         print('about to start backprop with {} epochs'.format(nEpochs))
         try:
             nEpochs = self.config.generations_of_backprop
@@ -103,7 +106,8 @@ class BackpropPopulation(Population):
 
             # net = NeatNet(genome, self.config, criterion=self.criterion)
             try:
-                net = nneat(genome, self.config, criterion=nn.BCEWithLogitsLoss())
+                net = nneat(genome, self.config,
+                            criterion=nn.BCEWithLogitsLoss())
             except GenomeNotValidError:
                 print("This net isn't valid")
                 preBPLoss = 0
@@ -113,9 +117,8 @@ class BackpropPopulation(Population):
                 losses.append((preBPLoss, postBPLoss, lossDiff))
                 postLosses.append(postBPLoss)
                 continue
-                
 
-            optimizer = optim.Adadelta(net.parameters())
+            optimizer = optim.Adadelta(net.parameters(), lr=1.5)
 
             optimizer.zero_grad()
             losses = []
@@ -126,29 +129,38 @@ class BackpropPopulation(Population):
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
-                losses.append(loss)  
+                losses.append(loss)
             # losses[-10:]
             postBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
             lossDiff = postBPLoss - preBPLoss
 
             losses.append((preBPLoss, postBPLoss, lossDiff))
             improvements.append(lossDiff.item())
-            net.update_genome_weights() # Not updating?
+            # print(net.weights)
+            # print("PRE")
+            # for ix in genome.connections:
+            #     print(genome.connections[ix])
+            # print(net.weights)
+            net.update_genome_weights()  # Not updating?
+            self.population[k] = net.genome
+            # for ix in genome.connections:
+            # print(genome.connections[ix])
+            # for ix in net.genome.connections:
+            # print(net.genome.connections[ix])
             postLosses.append(postBPLoss.item())
-
 
         print('mean improvement: %s' % mean(improvements))
         print('best improvement: %s' % min(improvements))
         print('best loss: %s' % min(postLosses))
-            
 
-    def run(self, fitness_function, n=None, nEpochs = 100):
+    def run(self, fitness_function, n=None, nEpochs=100):
         """
-        
+
         """
 
         if self.config.no_fitness_termination and (n is None):
-            raise RuntimeError("Cannot have no generational limit with no fitness termination")
+            raise RuntimeError(
+                "Cannot have no generational limit with no fitness termination")
 
         k = 0
         while n is None or k < n:
@@ -158,14 +170,16 @@ class BackpropPopulation(Population):
                 self.reporters.start_generation(self.generation)
 
             with MethodTimer('pre_backprop'):
-                self.reporters.pre_backprop(self.config, self.population, self.species)
-            
+                self.reporters.pre_backprop(
+                    self.config, self.population, self.species)
+
             with MethodTimer('backprop'):
                 self.backpropagate(self.xs, self.ys, nEpochs=nEpochs)
 
             with MethodTimer('post_backprop'):
-                self.reporters.post_backprop(self.config, self.population, self.species)
-            
+                self.reporters.post_backprop(
+                    self.config, self.population, self.species)
+
             logging.debug('The current population after backpropagation is')
             logging.debug(self.population)
 
@@ -181,7 +195,8 @@ class BackpropPopulation(Population):
                 if best is None or g.fitness > best.fitness:
                     best = g
             with MethodTimer('post evaluate'):
-                self.reporters.post_evaluate(self.config, self.population, self.species, best)
+                self.reporters.post_evaluate(
+                    self.config, self.population, self.species, best)
 
             # Track the best genome ever seen.
             if self.best_genome is None or best.fitness > self.best_genome.fitness:
@@ -189,23 +204,26 @@ class BackpropPopulation(Population):
 
             if not self.config.no_fitness_termination:
                 # End if the fitness threshold is reached.
-                fv = self.fitness_criterion(g.fitness for genome_id, g in self.population.items())
+                fv = self.fitness_criterion(
+                    g.fitness for genome_id, g in self.population.items())
                 if fv >= self.config.fitness_threshold:
-                    self.reporters.found_solution(self.config, self.generation, best)
+                    self.reporters.found_solution(
+                        self.config, self.generation, best)
                     break
 
             # Create the next generation from the current generation.
 
             with MethodTimer('pre_reproduction'):
-                self.reporters.pre_reproduction(self.config, self.population, self.species)
+                self.reporters.pre_reproduction(
+                    self.config, self.population, self.species)
 
             with MethodTimer('reproduction'):
                 self.population = self.reproduction.reproduce(self.config, self.species,
-                                                          self.config.pop_size, self.generation)
+                                                              self.config.pop_size, self.generation)
 
             with MethodTimer('post reproduction'):
-                self.reporters.post_reproduction(self.config, self.population, self.species)
-
+                self.reporters.post_reproduction(
+                    self.config, self.population, self.species)
 
             # Check for complete extinction.
             if not self.species.species:
@@ -223,18 +241,20 @@ class BackpropPopulation(Population):
             # Divide the new population into species.
 
             with MethodTimer('speciate'):
-                self.species.speciate(self.config, self.population, self.generation)
+                self.species.speciate(
+                    self.config, self.population, self.generation)
 
             with MethodTimer('end generation'):
-                self.reporters.end_generation(self.config, self.population, self.species)
+                self.reporters.end_generation(
+                    self.config, self.population, self.species)
 
             self.generation += 1
-        
-        self.reporters.end_experiment(self.config, self.population, self.species)
+
+        self.reporters.end_experiment(
+            self.config, self.population, self.species)
 
         if self.config.no_fitness_termination:
-            self.reporters.found_solution(self.config, self.generation, self.best_genome)
+            self.reporters.found_solution(
+                self.config, self.generation, self.best_genome)
 
         return self.best_genome
-
-
