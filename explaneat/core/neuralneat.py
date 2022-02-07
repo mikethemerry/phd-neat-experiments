@@ -25,6 +25,7 @@ class NeuralNeat(nn.Module):
         super(NeuralNeat, self).__init__()
         self.genome = genome
         self.config = config
+        self.node_mapping = NodeMapping(genome, config)
         self.valid = self.is_valid()
         if not self.valid:
             raise GenomeNotValidError()
@@ -58,9 +59,6 @@ class NeuralNeat(nn.Module):
         self.criterion = criterion
         self.optimiser = optimiser
         self.optimizer = self.optimiser
-
-        self.node_mapping = NodeMapping(genome, config)
-        self.layer_mapping = None
 
     def _create_node_map(self, node):
         pass
@@ -598,22 +596,30 @@ class NodeMapping(object):
         # is in place before doing rest of computation
         for layer_id, layer in self.layers.items():
             layer_offset = 0
+            # print("considering {}".format(layer_id))
             for input_layer_id in layer['input_layers']:
+                # print("from input layer {}".format(input_layer_id))
                 input_layer = self.layers[input_layer_id]
+                # print(input_layer)
                 for input_node_id, input_node in input_layer['nodes'].items():
-                    for output_node_id in node['output_ids']:
+                    for output_node_id in input_node['output_ids']:
                         # iterating over ever target connection from nodes
                         # in the input layers
+                        connection_index = (input_node_id, output_node_id)
+
+                        # print("Considering this connection")
+                        # print(connection_index)
+                        # print("From {} layer to {} layer".format(
+                        # input_layer_id, layer_id))
                         if output_node_id in layer['nodes']:
                             output_node = layer['nodes'][output_node_id]
-                            connection_index = (input_node_id, output_node_id)
                             # This is a connection relating to this layer
-                            connection = self.genome.connections[(
-                                node_id, output_node_id)]
+                            connection = self.genome.connections[connection_index]
                             # Is the connection valid?
                             if not connection.enabled:
                                 continue
-                            input_index = layer_offset + node['layer_index']
+                            input_index = layer_offset + \
+                                input_node['layer_index']
                             output_index = output_node['layer_index']
                             self.connection_map[connection_index] = (
                                 layer_id,
@@ -621,4 +627,4 @@ class NodeMapping(object):
                                 output_index
                             )
                 # Add the full offset of the layer
-                layer_offset += input_layer['output_shape']
+                layer_offset = layer_offset + input_layer['output_shape']
