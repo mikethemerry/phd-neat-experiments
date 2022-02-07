@@ -13,6 +13,10 @@ LAYER_TYPE_CONNECTED = "CONNECTED"
 LAYER_TYPE_INPUT = "INPUT"
 LAYER_TYPE_OUTPUT = "OUTPUT"
 
+LAYER_ACTIVATION_RELU = "ReLU"
+LAYER_ACTIVATION_SIGMOID = "Sigmoid"
+LAYER_ACTIVATION_INPUT = "Input"
+
 
 class NeuralNeat(nn.Module):
     # Creates a PyTorch Neural Network from an ExplaNEAT genome
@@ -55,8 +59,8 @@ class NeuralNeat(nn.Module):
         self.optimiser = optimiser
         self.optimizer = self.optimiser
 
-        self.node_mappings = NodeMapping(genome, config)
-        self.layer_mappings = None
+        self.node_mapping = NodeMapping(genome, config)
+        self.layer_mapping = None
 
     def _create_node_map(self, node):
         pass
@@ -417,10 +421,11 @@ class NodeMapping(object):
                  config):
         self.genome = genome
         self.config = config
+        self.connection_map = {}
+        self._create_node_mapping()
+        self._create_layer_mapping()
 
-        self._create_node_mappings()
-
-    def _create_node_mappings(self):
+    def _create_node_mapping(self):
         """Creates an object of node mappings that covers depths
         necessity of skip layers; input nodes; output nodes; whether or not the
         node is active, and valid
@@ -441,7 +446,12 @@ class NodeMapping(object):
                                   'on_path_to_input': False,
                                   'is_input': False,
                                   'is_output': False,
-                                  'is_valid': False} for node_id in node_keys}
+                                  'is_valid': False,
+                                  'output_layers': [],
+                                  'input_layers': [],
+                                  'skips_in': False,
+                                  'skips_out': False
+                                  } for node_id in node_keys}
         # index all connections to the nodes
         for connection in genome.connections:
             # Check for activation
@@ -492,9 +502,123 @@ class NodeMapping(object):
 
         # Do final computations of node properties
         for _, node in node_tracker.items():
+            # Is valid?
             if (node['is_input'] or node['is_output'] or
                     (node['on_path_to_input'] and node['on_path_to_output'])):
                 node['is_valid'] = True
 
+            # Create list of output layers. If there any output layer
+            # Is more than one depth away, then it must skip out
+            # Similar for input layers
+            for output_id in node['output_ids']:
+                node['output_layers'].append(node_tracker[output_id]['depth'])
+                if node_tracker[output_id]['depth'] > (node['depth']+1):
+                    node['skips_out'] = True
+            for input_id in node['input_ids']:
+                node['input_layers'].append(node_tracker[input_id]['depth'])
+                if node_tracker[input_id]['depth'] < (node['depth']-1):
+                    node['skips_in'] = True
+
         # Set node_mappings
-        self.node_mappings = node_tracker
+        self.node_mapping = node_tracker
+        self.valid_node_mapping = {
+            node_id: node for node_id, node in node_tracker.items() if node['is_valid']}
+
+    def _create_layer_mapping(self):
+
+        self.layers = {}
+        node_map = self.valid_node_mapping
+
+        # Create default layer information and add nodes
+        # to the appropriate layer
+        for node_id, node in node_map.items():
+            if not node['depth'] in self.layers:
+                # Default layer
+                self.layers[node['depth']] = {
+                    'nodes': {},
+                    'is_output_layer': False,
+                    'is_input_layer': False,
+                    'layer_type': None,
+                    'layer_activation': None,
+                    'input_layers': [],
+                    'input_shape': None,
+                    'output_shape': None,
+                    'weights_shape': None,
+                    'input_map': {}
+                }
+            # add node
+            self.layers[node['depth']]['nodes'][node_id] = node
+            node['layer'] = node['depth']
+
+        for layer_id, layer in self.layers.items():
+
+            # Create the layer index for the nodes - i.e., the index within the
+            # layer that the node sits in
+            layer_index = 0
+            for __, node in layer['nodes'].items():
+                node['layer_index'] = layer_index
+                layer_index += 1
+
+            # Create information for all of the layers
+
+            # LAYER TYPES!!
+            layer['layer_type'] = LAYER_TYPE_CONNECTED
+            layer['layer_activation'] = LAYER_ACTIVATION_RELU
+            # If I have the output node, I'm an output
+            if 0 in layer['nodes']:
+                layer['is_output_layer'] = True
+                layer['layer_type'] = LAYER_TYPE_OUTPUT
+                layer['layer_activation'] = LAYER_ACTIVATION_SIGMOID
+            # If I have the first input, then I am an input layer
+            if -1 in layer['nodes']:
+                layer['is_input_layer'] = True
+                layer['layer_type'] = LAYER_TYPE_INPUT
+                layer['layer_activation'] = LAYER_ACTIVATION_INPUT
+
+            # Compute shape of inputs
+            for node_id, node in layer['nodes'].items():
+                for in_layer in node['input_layers']:
+                    if in_layer not in layer['input_layers']:
+                        layer['input_layers'].append(in_layer)
+
+            # !! Important note - this adds skip layers to the top of the matrix
+            # Not the bottom - for offsetting this can be important
+            layer['input_layers'].sort()
+
+            # Calculate shapes
+            layer['input_shape'] = sum(len(self.layers[jj]['nodes'])
+                                       for jj in layer['input_layers'])
+            layer['output_shape'] = len(layer['nodes'])
+            layer['weights_shape'] = (
+                layer['input_shape'], layer['output_shape'])
+            layer['shape'] = layer['weights_shape']
+
+        # Calculate final map to dense layers
+        # This requires an extra loop so that all meta data about layers
+        # is in place before doing rest of computation
+        for layer_id, layer in self.layers.items():
+            layer_offset = 0
+            for input_layer_id in layer['input_layers']:
+                input_layer = self.layers[input_layer_id]
+                for input_node_id, input_node in input_layer['nodes'].items():
+                    for output_node_id in node['output_ids']:
+                        # iterating over ever target connection from nodes
+                        # in the input layers
+                        if output_node_id in layer['nodes']:
+                            output_node = layer['nodes'][output_node_id]
+                            connection_index = (input_node_id, output_node_id)
+                            # This is a connection relating to this layer
+                            connection = self.genome.connections[(
+                                node_id, output_node_id)]
+                            # Is the connection valid?
+                            if not connection.enabled:
+                                continue
+                            input_index = layer_offset + node['layer_index']
+                            output_index = output_node['layer_index']
+                            self.connection_map[connection_index] = (
+                                layer_id,
+                                input_index,
+                                output_index
+                            )
+                # Add the full offset of the layer
+                layer_offset += input_layer['output_shape']
