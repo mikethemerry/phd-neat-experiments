@@ -23,6 +23,8 @@ class NeuralNeat(nn.Module):
     def __init__(self, genome, config, criterion=nn.BCELoss(), optimiser=optim.Adadelta):
         # just run the init of parent class (nn.Module)
         super(NeuralNeat, self).__init__()
+        # print("_----------------------_")
+        # print("I'm a new net")
         self.genome = genome
         self.config = config
         self.node_mapping = NodeMapping(genome, config)
@@ -36,17 +38,38 @@ class NeuralNeat(nn.Module):
             print(self.genome)
             print(self.valid)
             exit()
-        self.layers = layers
-        self.node_tracker = node_tracker
+
+        self.layers = self.node_mapping.layers
+        self.node_tracker = self.node_mapping.node_mapping
+
+        # print("My map is")
+        # print(self.node_mapping.connection_map)
+
+        # print("my layers are")
+        # print(self.layers)
+        # print("my node tracking is")
+        # print(self.node_tracker)
+
         self.weights = {layer_id: self._tt(
-            layer['input_weights'].copy()) for layer_id, layer in layers.items()}
+            layer['input_weights'].copy()) for layer_id, layer in self.layers.items()}
+        # print("my weights are")
+        # print(self.weights)
+        # print("my connections are")
+        # for connection_id, connection in self.genome.connections.items():
+        #     print(connection_id, connection.weight)
+
         self.biases = {layer_id: self._tt(
-            layer['bias'].copy()) for layer_id, layer in layers.items()}
+            layer['bias'].copy()) for layer_id, layer in self.layers.items()}
+        # print("my biases are")
+        # print(self.biases)
+        # print("the node biases are")
+        # for node_id, node in self.genome.nodes.items():
+        #     print(node_id, node.bias)
         self.layer_types = {layer_id: layer['layer_type']
-                            for layer_id, layer in layers.items()}
+                            for layer_id, layer in self.layers.items()}
         self.layer_inputs = {layer_id: layer['input_layers']
-                             for layer_id, layer in layers.items()}
-        self.n_layers = len(layers)
+                             for layer_id, layer in self.layers.items()}
+        self.n_layers = len(self.layers)
 
         self._outputs = None
 
@@ -345,6 +368,9 @@ class NeuralNeat(nn.Module):
         # Will use breadth-first search to span network from feed forward
         # and identify all reached nodes. If reached nodes don't match list of
         # all nodes then some have no connection to input, so are invalid
+
+        if len(self.node_mapping.connection_map) == 0:
+            return False
         node_tracker = {node_id: {'depth': 0, 'output_ids': [],
                                   'input_ids': []} for node_id in self.genome.nodes}
 
@@ -542,7 +568,8 @@ class NodeMapping(object):
                     'input_shape': None,
                     'output_shape': None,
                     'weights_shape': None,
-                    'input_map': {}
+                    'input_map': {},
+                    'input_weights': None
                 }
             # add node
             self.layers[node['depth']]['nodes'][node_id] = node
@@ -626,5 +653,25 @@ class NodeMapping(object):
                                 input_index,
                                 output_index
                             )
+
                 # Add the full offset of the layer
                 layer_offset = layer_offset + input_layer['output_shape']
+
+            # Create weights
+            layer['input_weights'] = np.zeros(layer['weights_shape'])
+            if layer['layer_type'] == LAYER_TYPE_INPUT:
+                layer['input_weights'] = np.ones(
+                    (1, layer['weights_shape'][1]))
+
+            # print("conn map")
+            # print(self.connection_map)
+            for connection_id, target in self.connection_map.items():
+                # print("testing")
+                # print(connection_id, target)
+                self.layers[target[0]]['input_weights'][target[1]
+                                                        ][target[2]] = self.genome.connections[connection_id].weight
+            layer['bias'] = np.zeros(layer['shape'][1])
+            for node_id, node in layer['nodes'].items():
+                if node_id in self.genome.nodes:
+                    layer['bias'][node['layer_index']
+                                  ] = self.genome.nodes[node_id].bias
