@@ -17,5 +17,6 @@
         "config_file": "qwer"
     },
     "random_seed": 42,
-    "train_test_ratio": 0.15
+    "train_test_ratio": 0.15,
+    "max_n_generations": 200
 }

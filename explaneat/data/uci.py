@@ -70,8 +70,10 @@ class UCI_WRANGLER(object):
                 lambda x: self.meta['definitions'][category].index(x))
 
         # Load raw data
-        self.xs_raw = np.array(self.data[self.meta['x_columns']])
-        self.ys_raw = np.array(self.data[self.meta['y_column']])
+        self.xs_raw = np.array(self.data[self.meta['x_columns']]).astype(
+            TYPE_DICT[self.meta['x_type']])
+        self.ys_raw = np.array(self.data[self.meta['y_column']]).astype(
+            TYPE_DICT[self.meta['y_type']])
 
     def preprocess_x(self):
         self.xs = self.xs_raw.copy()
