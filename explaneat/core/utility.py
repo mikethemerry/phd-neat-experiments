@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 def one_hot_encode(vals):
     width = max(vals)
@@ -8,3 +9,18 @@ def one_hot_encode(vals):
         blank[val] = 1.
         newVals.append(blank)
     return np.asarray(newVals)
+
+
+class MethodTimer():
+    def __init__(self, functionName = ""):
+        self.start = time.time()
+        self.functionName = functionName
+        msg = 'The function - {fname} - has just started at {time}'
+        print(msg.format(fname= self.functionName, time=self.start))
+    def __enter__(self):
+        return self
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        end = time.time()
+        runtime = end - self.start
+        msg = 'The function - {fname} - took {time} seconds to complete'
+        print(msg.format(fname= self.functionName, time=runtime))
