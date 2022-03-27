@@ -9,18 +9,13 @@
         "location": "data"
     },
     "data": {
-        "locations": {
-            "train": {
-                "xs": "asdf",
-                "ys": "fdsa"
-            },
-            "test": {
-                "xs": "fdsa",
-                "ys": "qwer"
-            }
-        }
+        "locations": {},
+        "raw_location": "/Users/mike/dev-mtm/phd-neat-experiments/data/breast-cancer/breast-cancer.data",
+        "raw_data_meta": "/Users/mike/dev-mtm/phd-neat-experiments/data/breast-cancer/breast-cancer-meta.json"
     },
     "model": {
         "config_file": "qwer"
-    }
+    },
+    "random_seed": 42,
+    "train_test_ratio": 0.15
 }

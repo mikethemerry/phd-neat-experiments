@@ -9,7 +9,6 @@ import datetime
 from hashlib import sha256
 
 
-
 class obj:
 
     # constructor
@@ -32,18 +31,16 @@ class GenericExperiment(object):
         "info.log": logging.INFO
     }
 
-    def __init__(self, config, confirm_path_creation = True, experiment_sha=None):
-        self.create_stream_logging(logging.INFO)
+    def __init__(self, config, confirm_path_creation=True, experiment_sha=None, logging_level=logging.INFO):
+        self.create_stream_logging(logging_level)
 
         self.experiment_sha = experiment_sha
         self.experiment_start_time = datetime.datetime.now().strftime("%y%m%dT%H%M%S")
         self.experiment_start_time_with_ms = datetime.datetime.now().strftime("%y%m%dT%H%M%S.%f")
 
-        if Path(config).is_file():
-            with open(config, 'r') as fp:
-                self.config = json.load(fp)
-        else:
-            raise FileNotFoundError("Config file not found")
+        self._requested_config = config
+
+        self.load_config()
 
         self.config_string = json.dumps(self.config)
 
@@ -54,7 +51,16 @@ class GenericExperiment(object):
 
         self.save_configurations()
 
-        self.logger.info("Experiment init for project %s has completed" % self.experiment_sha)
+        self.logger.info(
+            "Experiment init for project %s has completed" % self.experiment_sha)
+
+    def load_config(self):
+
+        if Path(self._requested_config).is_file():
+            with open(self._requested_config, 'r') as fp:
+                self.config = json.load(fp)
+        else:
+            raise FileNotFoundError("Config file not found")
 
     def run_experiment(self):
         pass
@@ -76,7 +82,7 @@ class GenericExperiment(object):
             self.experiment_sha
         )
         self.logger.info("Experiment folder name is %s" %
-                    self.experiment_folder_name)
+                         self.experiment_folder_name)
 
         self.root_path = os.path.join(
             self.config['experiment']['base_location'],
@@ -87,7 +93,8 @@ class GenericExperiment(object):
         if not os.path.exists(self.config['experiment']['base_location']):
             if self.confirm_path_creation:
                 if not (input("The base location does not exist, continue? Y/N\nBase location is %s" % self.config['experiment']['base_location']).lower() == "y"):
-                    raise FileNotFoundError("The base location does not exist!")
+                    raise FileNotFoundError(
+                        "The base location does not exist!")
         # baselocation/[experiment_name]_[time]
         if not os.path.exists(self.root_path):
             self.logger.info("Creating the root path")
@@ -103,9 +110,9 @@ class GenericExperiment(object):
 
     def path(self, *args):
         return os.path.join(self.root_path, *args)
-    
+
     def prepend_sha(self, myString):
-        return "%s-%s"% (self.experiment_sha, myString)
+        return "%s-%s" % (self.experiment_sha, myString)
 
     def save_configurations(self):
         self.logger.info('Saving experiment configuration')
@@ -140,10 +147,10 @@ class GenericExperiment(object):
                         location[data_set], location, data_set
                     ))
 
-
-    def create_stream_logging(self, logging_level = logging.INFO):
+    def create_stream_logging(self, logging_level=logging.INFO):
 
         self.logger = logging.getLogger("experimenter")
+        self.logger.propagate = False
         self.logger.setLevel(logging_level)
 
         ch = logging.StreamHandler()
@@ -160,8 +167,9 @@ class GenericExperiment(object):
     def create_file_logging(self):
         self.logger.info("Creating file logging")
         for file, level in self.file_loggers.items():
-            file_handler = logging.FileHandler(self.path("logs", self.prepend_sha(file)))
-            
+            file_handler = logging.FileHandler(
+                self.path("logs", self.prepend_sha(file)))
+
             # Do I need this or does it inheret from logger?
             file_handler.setLevel(level)
 
@@ -184,21 +192,21 @@ class GenericExperiment(object):
 
         if self._experiment_sha is not None:
             return self._experiment_sha
-        
-        return sha256(("%s-%s" % ( self.config_string, self.experiment_start_time_with_ms)).encode()).hexdigest()[:8]
-    
+
+        return sha256(("%s-%s" % (self.config_string, self.experiment_start_time_with_ms)).encode()).hexdigest()[:8]
+
     @experiment_sha.setter
     def experiment_sha(self, sha):
         if sha is not None:
-            self.logger.warning("Setting experiment sha to %s - this will replicate results of previous experiments. Only do this if you know what you're doing" % sha)
+            self.logger.warning(
+                "Setting experiment sha to %s - this will replicate results of previous experiments. Only do this if you know what you're doing" % sha)
         self._experiment_sha = sha
 
     @experiment_sha.getter
     def experiment_sha(self):
         if self._experiment_sha is not None:
             return self._experiment_sha
-        return sha256(("%s-%s" % ( self.config_string, self.experiment_start_time_with_ms)).encode()).hexdigest()[:8]
-
+        return sha256(("%s-%s" % (self.config_string, self.experiment_start_time_with_ms)).encode()).hexdigest()[:8]
 
     @property
     def config(self):
