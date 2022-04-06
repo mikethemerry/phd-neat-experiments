@@ -6,6 +6,8 @@ import logging
 import os
 import datetime
 
+import shutil
+
 from hashlib import sha256
 
 
@@ -33,6 +35,8 @@ class GenericExperiment(object):
 
     def __init__(self, config, confirm_path_creation=True, experiment_sha=None, logging_level=logging.INFO):
         self.create_stream_logging(logging_level)
+
+        self.config_files = {}
 
         self.experiment_sha = experiment_sha
         self.experiment_start_time = datetime.datetime.now().strftime("%y%m%dT%H%M%S")
@@ -114,10 +118,19 @@ class GenericExperiment(object):
     def prepend_sha(self, myString):
         return "%s-%s" % (self.experiment_sha, myString)
 
-    def save_configurations(self):
+    def save_experimenter_config(self):
         self.logger.info('Saving experiment configuration')
         with open(self.path('configurations', self.prepend_sha('experiment.json')), 'w') as fp:
             json.dump(self.config, fp, indent=4, sort_keys=True)
+
+    def save_configurations(self):
+        self.save_experimenter_config()
+        self.logger.info("Saving other config files")
+        for config_name, config_fp in self.config_files.items():
+            src = config_fp
+            dst = self.path('configurations', self.prepend_sha(
+                '{}.configuration'.format(config_name)))
+            shutil.copyfile(src, dst)
 
     def dict2obj(self, dict1):
         # https://www.geeksforgeeks.org/convert-nested-python-dictionary-to-object/
@@ -181,6 +194,11 @@ class GenericExperiment(object):
             self.logger.addHandler(file_handler)
 
         self.logger.info("Finished creating file logging")
+
+    def register_config_file(self, file_path, name, save=True):
+        self.config_files[name] = file_path
+        if save:
+            self.save_configurations()
 
     @property
     def experiment_sha(self):
