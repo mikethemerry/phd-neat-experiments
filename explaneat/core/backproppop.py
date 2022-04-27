@@ -1,6 +1,8 @@
 """Implements the core evolution algorithm."""
 from __future__ import print_function
 
+import sys
+
 
 from neat.math_util import mean, stdev
 
@@ -45,9 +47,15 @@ class BackpropPopulation(Population):
                  initial_state=None,
                  criterion=nn.BCELoss(),
                  optimizer=optim.Adadelta,
-                 nEpochs=100):
+                 nEpochs=100,
+                 device=None):
+        self.logger = logging.getLogger("experimenter.backproppop")
         self.reporters = ReporterSet()
         self.config = config
+
+        USE_CUDA = torch.cuda.is_available()
+        USE_CUDA = False
+        self.device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
         if not type(xs) is torch.Tensor:
             self.xs = torch.tensor(xs, dtype=torch.float64)
@@ -94,7 +102,8 @@ class BackpropPopulation(Population):
         self.best_genome = None
 
     def backpropagate(self, xs, ys, nEpochs=5):
-        print('about to start backprop with {} epochs'.format(nEpochs))
+        self.logger.info(
+            'about to start backprop with {} epochs'.format(nEpochs))
         try:
             nEpochs = self.config.generations_of_backprop
         except AttributeError:
@@ -109,7 +118,7 @@ class BackpropPopulation(Population):
                 net = nneat(genome, self.config,
                             criterion=nn.BCEWithLogitsLoss())
             except GenomeNotValidError:
-                print("This net isn't valid")
+                ("This net - {} isn't valid".format(k))
                 preBPLoss = 0
                 postBPLoss = 99999
                 lossDiff = postBPLoss - preBPLoss
@@ -122,7 +131,11 @@ class BackpropPopulation(Population):
 
             optimizer.zero_grad()
             losses = []
-            preBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
+            try:
+                preBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
+            except:
+                net.help_me_debug()
+                sys.exit("Error in loss for backprop")
             for i in range(nEpochs):
                 preds = net.forward(xs)
                 loss = F.mse_loss(preds, ys).sqrt()
@@ -136,22 +149,22 @@ class BackpropPopulation(Population):
 
             losses.append((preBPLoss, postBPLoss, lossDiff))
             improvements.append(lossDiff.item())
-            # print(net.weights)
-            # print("PRE")
+            # self.logger.info(net.weights)
+            # self.logger.info("PRE")
             # for ix in genome.connections:
-            #     print(genome.connections[ix])
-            # print(net.weights)
+            #     self.logger.info(genome.connections[ix])
+            # self.logger.info(net.weights)
             net.update_genome_weights()  # Not updating?
             self.population[k] = net.genome
             # for ix in genome.connections:
-            # print(genome.connections[ix])
+            # self.logger.info(genome.connections[ix])
             # for ix in net.genome.connections:
-            # print(net.genome.connections[ix])
+            # self.logger.info(net.genome.connections[ix])
             postLosses.append(postBPLoss.item())
 
-        print('mean improvement: %s' % mean(improvements))
-        print('best improvement: %s' % min(improvements))
-        print('best loss: %s' % min(postLosses))
+        self.logger.info('mean improvement: %s' % mean(improvements))
+        self.logger.info('best improvement: %s' % min(improvements))
+        self.logger.info('best loss: %s' % min(postLosses))
 
     def run(self, fitness_function, n=None, nEpochs=100):
         """
@@ -187,7 +200,8 @@ class BackpropPopulation(Population):
             # fitness_function(list(iter(self.population.iteritems())), self.config)
 
             with MethodTimer('evaluate fitness'):
-                fitness_function(self.population, self.config)
+                fitness_function(self.population, self.config,
+                                 self.xs, self.ys, self.device)
 
             # Gather and report statistics.
             best = None

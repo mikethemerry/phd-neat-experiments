@@ -86,6 +86,11 @@ class UCI_WRANGLER(object):
         for transform in self.meta['y_transforms']:
             self.ys = TRANSFORMERS[transform](self.ys)
 
+        self.logger.info("ys shape is {}".format(self.ys.shape))
+        if(len(self.ys.shape)) == 1:
+            self.logger.info("recasting ys to (n,1)")
+            self.ys = self.ys[:, None]
+
     def create_train_test_split(self,
                                 test_size,
                                 random_state):
