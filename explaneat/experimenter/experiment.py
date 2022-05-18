@@ -6,9 +6,29 @@ import logging
 import os
 import datetime
 
+import psutil
+import socket
+
+from git import Repo
+from git import InvalidGitRepositoryError
+
 import shutil
 
 from hashlib import sha256
+
+
+def get_size(bytes, suffix="B"):
+    """
+    Scale bytes to its proper format
+    e.g:
+        1253656 => '1.20MB'
+        1253656678 => '1.17GB'
+    """
+    factor = 1024
+    for unit in ["", "K", "M", "G", "T", "P"]:
+        if bytes < factor:
+            return f"{bytes:.2f}{unit}{suffix}"
+        bytes /= factor
 
 
 class obj:
@@ -45,6 +65,8 @@ class GenericExperiment(object):
         self._requested_config = config
 
         self.load_config()
+
+        self.add_device_and_repo_to_config()
 
         self.config_string = json.dumps(self.config)
 
@@ -200,9 +222,46 @@ class GenericExperiment(object):
         if save:
             self.save_configurations()
 
-    @property
+    def add_device_and_repo_to_config(self):
+
+        curr_path = os.getcwd()
+        have_good_repo = False
+        for path_depth in range(len(curr_path.split(os.sep))):
+            try:
+                repo = Repo(curr_path)
+            except InvalidGitRepositoryError:
+                curr_path = curr_path + "/.."
+                continue
+            have_good_repo = True
+            break
+
+        self.config['repository'] = {
+            "branch": repo.head.reference.name,
+            "commit": repo.head.reference.commit.hexsha,
+            "changes": [
+                diff.a_path for diff in repo.head.commit.diff(None)
+            ]
+        }
+
+        svmem = psutil.virtual_memory()
+        swap = psutil.swap_memory()
+        self.config['device'] = {
+            "cpu": {
+                "physical_cores": psutil.cpu_count(logical=False),
+                "total_cores": psutil.cpu_count(logical=True),
+                "max_frequency": psutil.cpu_freq().max,
+                "min_frequency": psutil.cpu_freq().min,
+            },
+            "memory": {
+                "total": get_size(svmem.total),
+                "swap": get_size(swap.total)
+            },
+            "hostname": socket.gethostname()
+        }
+
+    @ property
     def experiment_sha(self):
-        """Experiment SHA is used as random seed for all experiments - it is 
+        """Experiment SHA is used as random seed for all experiments - it is
         defined against the configuration + run time, and the SHA is both a
         canonical reference to this specific iteration of the run, but also can
         be used to validate results later
@@ -213,28 +272,28 @@ class GenericExperiment(object):
 
         return sha256(("%s-%s" % (self.config_string, self.experiment_start_time_with_ms)).encode()).hexdigest()[:8]
 
-    @experiment_sha.setter
+    @ experiment_sha.setter
     def experiment_sha(self, sha):
         if sha is not None:
             self.logger.warning(
                 "Setting experiment sha to %s - this will replicate results of previous experiments. Only do this if you know what you're doing" % sha)
         self._experiment_sha = sha
 
-    @experiment_sha.getter
+    @ experiment_sha.getter
     def experiment_sha(self):
         if self._experiment_sha is not None:
             return self._experiment_sha
         return sha256(("%s-%s" % (self.config_string, self.experiment_start_time_with_ms)).encode()).hexdigest()[:8]
 
-    @property
+    @ property
     def config(self):
         return self._config
 
-    @config.setter
+    @ config.setter
     def config(self, configuration):
         self.validate_configuration(configuration)
         self._config = configuration
 
-    @config.getter
+    @ config.getter
     def config(self):
         return self._config
