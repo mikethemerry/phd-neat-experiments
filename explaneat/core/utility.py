@@ -1,6 +1,9 @@
 import numpy as np
 import time
 
+import logging
+
+
 def one_hot_encode(vals):
     width = max(vals)
     newVals = []
@@ -12,15 +15,19 @@ def one_hot_encode(vals):
 
 
 class MethodTimer():
-    def __init__(self, functionName = ""):
+    def __init__(self, functionName=""):
+
+        self.logger = logging.getLogger("experimenter.methodTimer")
         self.start = time.time()
         self.functionName = functionName
         msg = 'The function - {fname} - has just started at {time}'
-        print(msg.format(fname= self.functionName, time=self.start))
+        self.logger.info(msg.format(fname=self.functionName, time=self.start))
+
     def __enter__(self):
         return self
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         end = time.time()
         runtime = end - self.start
         msg = 'The function - {fname} - took {time} seconds to complete'
-        print(msg.format(fname= self.functionName, time=runtime))
+        self.logger.info(msg.format(fname=self.functionName, time=runtime))
