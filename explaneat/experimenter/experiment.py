@@ -9,8 +9,8 @@ import datetime
 import psutil
 import socket
 
-from git import Repo
-from git import InvalidGitRepositoryError
+# from git import Repo
+# from git import InvalidGitRepositoryError
 
 import shutil
 
@@ -226,22 +226,22 @@ class GenericExperiment(object):
 
         curr_path = os.getcwd()
         have_good_repo = False
-        for path_depth in range(len(curr_path.split(os.sep))):
-            try:
-                repo = Repo(curr_path)
-            except InvalidGitRepositoryError:
-                curr_path = curr_path + "/.."
-                continue
-            have_good_repo = True
-            break
+        # for path_depth in range(len(curr_path.split(os.sep))):
+            # try:
+                # repo = Repo(curr_path)
+            # except InvalidGitRepositoryError:
+                # curr_path = curr_path + "/.."
+                # continue
+            # have_good_repo = True
+            # break
 
-        self.config['repository'] = {
-            "branch": repo.head.reference.name,
-            "commit": repo.head.reference.commit.hexsha,
-            "changes": [
-                diff.a_path for diff in repo.head.commit.diff(None)
-            ]
-        }
+        # self.config['repository'] = {
+            # "branch": repo.head.reference.name,
+            # "commit": repo.head.reference.commit.hexsha,
+            # "changes": [
+                # diff.a_path for diff in repo.head.commit.diff(None)
+            # ]
+        # }
 
         svmem = psutil.virtual_memory()
         swap = psutil.swap_memory()
