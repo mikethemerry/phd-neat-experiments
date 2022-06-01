@@ -1,4 +1,5 @@
 
+from explaneat.core.errors import GenomeNotValidError
 import pandas as pd
 import numpy as np
 import random
@@ -7,7 +8,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from explaneat.core.errors import GenomeNotValidError
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
+
 
 LAYER_TYPE_CONNECTED = "CONNECTED"
 LAYER_TYPE_INPUT = "INPUT"
@@ -325,11 +329,13 @@ class NeuralNeat(nn.Module):
                 self._outputs[layer_id] = torch.sigmoid(torch.matmul(
                     layer_input, self.weights[layer_id]) + self.biases[layer_id])
             except Exception as e:
+                print("HAD A big error with these details")
                 print(e)
                 print("layer id:", layer_id)
-                print("layer input:", layer_id)
+                print("layer input:", layer_input)
                 print(vars(self))
-
+                print("weights {}:".format(self.weights[layer_id]))
+                print("biases {}:".format(self.biases[layer_id]))
                 print("======================")
                 print(self.layers)
                 print(self.genome)
@@ -337,7 +343,13 @@ class NeuralNeat(nn.Module):
                 print("---===---===---===")
 
             if layer_type == LAYER_TYPE_OUTPUT:
-                return self._outputs[layer_id]
+                try:
+                    # print("Hitting an output layer")
+                    return self._outputs[layer_id]
+                except:
+                    print("HAD A BIG ISSUE HERE")
+                    self.help_me_debug()
+                    # return self._outputs[layer_id]
 
     def optimise(self, xs, ys, nEpochs=100):
 
@@ -433,6 +445,38 @@ class NeuralNeat(nn.Module):
                 # print("I can't reach this node going backwards{}".format(node_id))
                 return False
         return True
+
+    def help_me_debug(self):
+        print("=============================")
+        print("DEBUGGING MY NETWORK!")
+        print("=============================")
+        print(" ")
+        print("-----------------------------")
+        print("GENOME IS")
+        print("-----------------------------")
+        print(self.genome)
+        print("-----------------------------")
+        print("")
+        print("-----------------------------")
+        print("output i")
+        print("-----------------------------")
+        print(self._outputs)
+        print("======================")
+        print(self.layers)
+        print(self.is_valid(True))
+        print("---===---===---===")
+        for ix, layer in self.node_mapping.layers.items():
+            print("Layer {}".format(ix))
+            pp.pprint(layer)
+            # try:
+            #     print("Shape{}: ".format(layer.shape))
+            # except AttributeError:
+            #     print("Shape [--]")
+            # print("Input layers {}: ".format(layer.input_layers))
+            # print("Output layers {}: ".format(layer.output_layers))
+        print("---===---===---===")
+        print("---===---===---===")
+        print("---===---===---===")
 
 
 class NodeMapping(object):

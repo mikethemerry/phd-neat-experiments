@@ -8,12 +8,12 @@ data_location = {
             "type": "string"
         }
     },
-    "required":["xs","ys"]
+    "required": ["xs", "ys"]
 }
 
 experiment = {
-    "type":"object",
-    "properties":{
+    "type": "object",
+    "properties": {
         "experiment": {
             "type": "object",
             "properties": {
@@ -26,11 +26,11 @@ experiment = {
                 "codename": {
                     "type": "string"
                 },
-                "base_location":{
-                    "type":"string"
+                "base_location": {
+                    "type": "string"
                 }
             },
-            "required":[
+            "required": [
                 "name",
                 "description",
                 "codename",
@@ -44,20 +44,21 @@ experiment = {
                     "type": "string"
                 }
             },
-            "required":["location"]
+            "required": ["location"]
         },
         "data": {
             "type": "object",
             "properties": {
                 "locations": {
-                    "train":data_location,
-                    "test": data_location
+                    "train": data_location,
+                    "test": data_location,
+                    "raw": data_location
                 }
             }
         },
         "model": {
-            "type":"object",
-            "properties":{
+            "type": "object",
+            "properties": {
                 "config_file": {
                     "type": "string"
                 }
