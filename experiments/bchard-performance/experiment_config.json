@@ -3,15 +3,15 @@
         "name": "Test Experiment",
         "description": "This is a dummy experiment with reasonable values",
         "codename": "test_experiment",
-        "base_location": "/Users/mike/dev-mtm/phd-neat-experiments/data/experiments/tests"
+        "base_location": "./../../data/experiments/tests"
     },
     "results": {
         "location": "data"
     },
     "data": {
         "locations": {},
-        "raw_location": "/Users/mike/dev-mtm/phd-neat-experiments/data/breast-cancer/breast-cancer.data",
-        "raw_data_meta": "/Users/mike/dev-mtm/phd-neat-experiments/data/breast-cancer/breast-cancer-meta.json"
+        "raw_location": "./../../data/breast_cancer/breast-cancer.data",
+        "raw_data_meta": "./../../data/breast_cancer/breast-cancer-meta.json"
     },
     "model": {
         "config_file": "qwer"
