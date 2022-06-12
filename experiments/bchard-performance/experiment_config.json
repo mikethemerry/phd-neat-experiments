@@ -6,7 +6,8 @@
         "base_location": "./../../data/experiments/tests"
     },
     "results": {
-        "location": "data"
+        "location": "data",
+        "database": "./../../data/experiments/tests/data/resultsDatabase.csv"
     },
     "data": {
         "locations": {},
