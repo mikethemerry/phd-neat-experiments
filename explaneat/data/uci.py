@@ -110,21 +110,31 @@ class UCI_WRANGLER(object):
         self.logger.info("train test are on device {}".format(device))
 
     def write_train_test_to_csv(self, folder):
-        def write_to_file(data, file, folder):
-
+        def write_to_file(data, file, folder, x_header=False, y_header=False):
+            if x_header and y_header:
+                raise Exception("Cannot have both X and Y headers")
             path = os.path.join(folder, file)
             self.logger.info("Writing to {}".format(path))
             with open(path, 'w') as fp:
                 writer = csv.writer(fp)
+                if x_header:
+                    self.logger.info("Adding x header")
+                    writer.writerow(self.data.columns)
+                if y_header:
+                    self.logger.info("Adding y header")
+                    if len(data[0]) > 1:
+                        raise NotImplementedError(
+                            "Y Headers only coded for single category output")
+                    writer.writerow(["y"])
                 writer.writerows(data)
             self.logger.info("Completed to {}".format(path))
 
         self.logger.info(
             "sending train test to csv in folder {}".format(folder))
-        write_to_file(self._X_train, "x_train.csv", folder)
-        write_to_file(self._X_test, "x_test.csv", folder)
-        write_to_file(self._y_train, "y_train.csv", folder)
-        write_to_file(self._y_test, "y_test.csv", folder)
+        write_to_file(self._X_train, "x_train.csv", folder, x_header=True)
+        write_to_file(self._X_test, "x_test.csv", folder, x_header=True)
+        write_to_file(self._y_train, "y_train.csv", folder, y_header=True)
+        write_to_file(self._y_test, "y_test.csv", folder, y_header=True)
         self.logger.info("train test are in folder {}".format(folder))
 
     @property
@@ -154,3 +164,14 @@ class UCI_WRANGLER(object):
             raise AttributeError(
                 "Train test split must be created before getting y test")
         return self._y_test
+
+    @property
+    def data_lengths(self):
+        """xtrain, xtest, ytrain, ytest lenghts
+        """
+        return (
+            len(self.X_train),
+            len(self.X_test),
+            len(self.y_train),
+            len(self.y_test),
+        )

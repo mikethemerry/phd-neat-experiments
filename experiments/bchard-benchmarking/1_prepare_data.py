@@ -4,6 +4,7 @@ import os
 from explaneat.experimenter.experiment import GenericExperiment
 
 from explaneat.data.uci import UCI_WRANGLER
+from explaneat.data.generic import GENERIC_WRANGLER
 
 
 parser = argparse.ArgumentParser(description="Provide the experiment config")
@@ -63,5 +64,22 @@ data_wrangler.create_train_test_split(experiment.config["train_test_ratio"],
 
 data_wrangler.write_train_test_to_csv(processed_data_location)
 
+logger.info("Validating can access data")
+
+generic_wrangler = GENERIC_WRANGLER(processed_data_location)
+
+if not data_wrangler.data_lengths == generic_wrangler.data_lengths:
+    logger.error("Data has not been saved correctly")
+    logger.error("UCI wrangler {}".format(data_wrangler.data_lengths))
+    logger.error("generic wrangler {}".format(generic_wrangler.data_lengths))
+    raise Exception("Data has not been saved correctly")
+else:
+    logger.info("Data has passed length checks")
+
+    logger.info("UCI wrangler {}".format(data_wrangler.data_lengths))
+    logger.info("generic wrangler {}".format(generic_wrangler.data_lengths))
 
 experiment.create_logging_header("DATA PREPARATION ENDED")
+
+
+experiment.create_logging_header("Ending 1_prepare_data", 50)

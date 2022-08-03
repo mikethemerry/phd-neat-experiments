@@ -23,3 +23,5 @@ experiment = GenericExperiment(
 experiment.create_logging_header("Starting 0_create_experiment", 50)
 
 experiment.write_run_to_file(args.ref_file)
+
+experiment.create_logging_header("Ending 0_create_experiment", 50)
