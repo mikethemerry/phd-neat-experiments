@@ -23,5 +23,5 @@
     },
     "random_seed": 42,
     "train_test_ratio": 0.15,
-    "max_n_generations": 200
+    "max_n_generations": 30
 }

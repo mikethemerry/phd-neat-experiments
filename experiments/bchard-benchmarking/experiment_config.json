@@ -1,8 +1,8 @@
 {
     "experiment": {
-        "name": "Test Experiment",
+        "name": "Breast Cancer Hard - cross model benchmark",
         "description": "This is a dummy experiment with reasonable values",
-        "codename": "test_experiment",
+        "codename": "bchard_benchmark",
         "base_location": "./../../data/experiments/tests",
         "base_location_gpu": "./../../data/experiments/tests"
     },
@@ -16,7 +16,8 @@
         "raw_location": "./../../data/breast-cancer/breast-cancer.data",
         "raw_data_meta": "./../../data/breast-cancer/breast-cancer-meta.json",
         "raw_location_gpu": "./../../data/breast_cancer/breast-cancer.data",
-        "raw_data_meta_gpu": "./../../data/breast_cancer/breast-cancer-meta.json"
+        "raw_data_meta_gpu": "./../../data/breast_cancer/breast-cancer-meta.json",
+        "processed_location": "./../../data/processed/"
     },
     "model": {
         "config_file": "qwer"

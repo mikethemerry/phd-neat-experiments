@@ -446,6 +446,11 @@ class NeuralNeat(nn.Module):
                 return False
         return True
 
+    def shapes(self):
+        return {
+            ix: self.layers[ix]['weights_shape'] for ix in range(len(self.layers))
+        }
+
     def help_me_debug(self):
         print("=============================")
         print("DEBUGGING MY NETWORK!")
@@ -476,6 +481,8 @@ class NeuralNeat(nn.Module):
             # print("Output layers {}: ".format(layer.output_layers))
         print("---===---===---===")
         print("---===---===---===")
+        print("---=== SHAPES ===---===")
+        print(self.shapes())
         print("---===---===---===")
 
 

@@ -3,6 +3,8 @@ import json
 import numpy as np
 import pandas as pd
 
+import csv
+
 import torch
 
 import sklearn.preprocessing as preprocessing
@@ -106,6 +108,24 @@ class UCI_WRANGLER(object):
         self._y_train = torch.from_numpy(self._y_train).to(device)
         self._y_test = torch.from_numpy(self._y_test).to(device)
         self.logger.info("train test are on device {}".format(device))
+
+    def write_train_test_to_csv(self, folder):
+        def write_to_file(data, file, folder):
+
+            path = os.path.join(folder, file)
+            self.logger.info("Writing to {}".format(path))
+            with open(path, 'w') as fp:
+                writer = csv.writer(fp)
+                writer.writerows(data)
+            self.logger.info("Completed to {}".format(path))
+
+        self.logger.info(
+            "sending train test to csv in folder {}".format(folder))
+        write_to_file(self._X_train, "x_train.csv", folder)
+        write_to_file(self._X_test, "x_test.csv", folder)
+        write_to_file(self._y_train, "y_train.csv", folder)
+        write_to_file(self._y_test, "y_test.csv", folder)
+        self.logger.info("train test are in folder {}".format(folder))
 
     @property
     def X_train(self):
