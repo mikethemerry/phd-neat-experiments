@@ -70,7 +70,7 @@ class ResultsDatabase():
                  filePath,
                  saveOnDestroy=True):
         self.init_complete = False
-        self.filePath = filePath
+        self.filePath = os.path.abspath(filePath)
         self.saveOnDestroy = saveOnDestroy
         if os.path.exists(self.filePath):
             self.data = pd.read_csv(self.filePath)
@@ -87,6 +87,9 @@ class ResultsDatabase():
         self.data = pd.concat([self.data, result.to_pd_record()])
 
     def save(self):
+        rootDir = os.path.dirname(self.filePath)
+        if not os.path.exists(rootDir):
+            os.makedirs(rootDir)
         self.data.to_csv(self.filePath, index=False)
 
     def __del__(self):

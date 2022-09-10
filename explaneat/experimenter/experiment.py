@@ -1,5 +1,7 @@
 from jsonschema import validate
 from explaneat.experimenter.schemas.experiment import experiment as EXPERIMENT_SCHEMA
+from explaneat.experimenter.results import Result, ResultsDatabase
+
 from pathlib import Path
 import json
 import logging
@@ -333,3 +335,14 @@ class GenericExperiment(object):
                                self._config['experiment']['codename'],
                                self.experiment_sha)
         return my_path
+
+    @ property
+    def results_database(self):
+        if not hasattr(self, "_results_database"):
+            self._results_database = ResultsDatabase(
+                self.config['results']['database'])
+        return self._results_database
+
+    @ property
+    def random_seed(self):
+        return self.config['random_seed']

@@ -59,3 +59,12 @@ if (($Step <= 1));
 then
    ipython 1_prepare_data.py ./experiment_config.json ./sha_file.json
 fi
+
+
+if (($Step <= 2));
+then
+   ipython 2_train_svm.py ./experiment_config.json ./sha_file.json
+   ipython 2_train_rf.py ./experiment_config.json ./sha_file.json
+   ipython 2_train_regression.py ./experiment_config.json ./sha_file.json
+   ipython 2_train_nn.py ./experiment_config.json ./sha_file.json
+fi

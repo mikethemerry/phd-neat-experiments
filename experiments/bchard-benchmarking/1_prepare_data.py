@@ -3,8 +3,8 @@ import os
 
 from explaneat.experimenter.experiment import GenericExperiment
 
-from explaneat.data.uci import UCI_WRANGLER
-from explaneat.data.generic import GENERIC_WRANGLER
+from explaneat.data.wranglers import UCI_WRANGLER
+from explaneat.data.wranglers import GENERIC_WRANGLER
 
 
 parser = argparse.ArgumentParser(description="Provide the experiment config")
@@ -26,7 +26,7 @@ experiment = GenericExperiment(
 logger = experiment.logger
 
 
-experiment.create_logging_header("Starting 1_prepare_data", 50)
+experiment.create_logging_header("Starting {}".format(__file__), 50)
 
 # ------ Prep the folders ------
 
@@ -68,18 +68,28 @@ logger.info("Validating can access data")
 
 generic_wrangler = GENERIC_WRANGLER(processed_data_location)
 
-if not data_wrangler.data_lengths == generic_wrangler.data_lengths:
-    logger.error("Data has not been saved correctly")
-    logger.error("UCI wrangler {}".format(data_wrangler.data_lengths))
-    logger.error("generic wrangler {}".format(generic_wrangler.data_lengths))
-    raise Exception("Data has not been saved correctly")
-else:
-    logger.info("Data has passed length checks")
+if ((data_wrangler.data_shapes == generic_wrangler.data_shapes) and
+            (generic_wrangler.data_shapes[0][1] ==
+             len(data_wrangler.meta['x_columns'])) and
+            (generic_wrangler.data_shapes[1][1] ==
+             len(data_wrangler.meta['x_columns']))
+        ):
 
-    logger.info("UCI wrangler {}".format(data_wrangler.data_lengths))
-    logger.info("generic wrangler {}".format(generic_wrangler.data_lengths))
+    logger.info("Data has passed shape checks")
+
+    logger.info("UCI wrangler {}".format(data_wrangler.data_shapes))
+    logger.info("generic wrangler {}".format(generic_wrangler.data_shapes))
+
+else:
+    logger.error("Data has not been saved correctly")
+    logger.error("UCI wrangler {}".format(data_wrangler.data_shapes))
+    logger.error("generic wrangler {}".format(generic_wrangler.data_shapes))
+    raise Exception("Data has not been saved correctly")
 
 experiment.create_logging_header("DATA PREPARATION ENDED")
 
+resultsDB = experiment.results_database
+resultsDB.save()
 
-experiment.create_logging_header("Ending 1_prepare_data", 50)
+
+experiment.create_logging_header("Ending {}".format(__file__), 50)

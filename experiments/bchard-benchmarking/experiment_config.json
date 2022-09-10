@@ -20,7 +20,17 @@
         "processed_location": "./../../data/processed/"
     },
     "model": {
-        "config_file": "qwer"
+        "config_file": "qwer",
+        "svm": {},
+        "random_forest": {
+            "n_estimators": 1000
+        },
+        "regression": {},
+        "neural_network": {
+            "batch_size": 243,
+            "learning_rate": 0.0005,
+            "num_epochs": 1000
+        }
     },
     "random_seed": 42,
     "train_test_ratio": 0.15,

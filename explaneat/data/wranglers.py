@@ -12,7 +12,11 @@ from sklearn.model_selection import train_test_split
 
 import explaneat.data.utils as utils
 
+from torch.utils.data import Dataset, DataLoader
+
+
 import logging
+
 
 TYPE_DICT = {
     "FLOAT32": np.float32,
@@ -27,7 +31,137 @@ TRANSFORMERS = {
 }
 
 
-class UCI_WRANGLER(object):
+class TabularDataset(Dataset):
+    """Face Landmarks dataset."""
+
+    def __init__(self, xs, ys):
+        self.xs = xs
+        self.ys = ys
+
+    def __len__(self):
+        return len(self.xs)
+
+    def __getitem__(self, idx):
+        x = self.xs[idx]
+        y = self.ys[idx]
+        return (x, y)
+
+
+class WRANGLER(object):
+    def __init__(self, folder):
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
+        raise NotImplementedError
+
+    def load_data(self):
+        raise NotImplementedError
+
+    @property
+    def Train_Dataset(self):
+        return TabularDataset(self.X_train.to_numpy(), self.y_train.to_numpy())
+
+    @property
+    def Test_Dataset(self):
+        return TabularDataset(self.X_test.to_numpy(), self.y_test.to_numpy())
+
+    @property
+    def X_train(self):
+        if self._X_train is None:
+            raise AttributeError(
+                "Train test split must be created before getting X train")
+        return self._X_train
+
+    @property
+    def X_test(self):
+        if self._X_test is None:
+            raise AttributeError(
+                "Train test split must be created before getting X test")
+        return self._X_test
+
+    @property
+    def y_train(self):
+        if self._y_train is None:
+            raise AttributeError(
+                "Train test split must be created before getting y train")
+        return self._y_train
+
+    @property
+    def y_test(self):
+        if self._y_test is None:
+            raise AttributeError(
+                "Train test split must be created before getting y test")
+        return self._y_test
+
+    @property
+    def data_lengths(self):
+        """xtrain, xtest, ytrain, ytest lengths
+        """
+        return (
+            len(self.X_train),
+            len(self.X_test),
+            len(self.y_train),
+            len(self.y_test),
+        )
+
+    @property
+    def data_shapes(self):
+        """xtrain, xtest, ytrain, ytest lenghts
+        """
+        return (
+            self.X_train.shape,
+            self.X_test.shape,
+            self.y_train.shape,
+            self.y_test.shape,
+        )
+
+    @property
+    def train_sets(self):
+        return (
+            self.X_train,
+            self.y_train
+        )
+
+    @property
+    def test_sets(self):
+        return (
+            self.X_test,
+            self.y_test
+        )
+
+    @property
+    def input_size(self):
+        return self.X_train.shape[1]
+
+    @property
+    def output_size(self):
+        return self.y_train.shape[1]
+
+
+class GENERIC_WRANGLER(WRANGLER):
+    def __init__(self, folder):
+        """Looks at folder, grabs x& y train and test
+
+        Args:
+            folder (str): Folder that contains x/y train and test`
+        """
+        self.folder = folder
+
+        self.load_data()
+
+    def load_data(self):
+        def load_from_file(file, folder):
+            path = os.path.join(folder, file)
+            return pd.read_csv(path)
+
+        self._X_train = load_from_file("x_train.csv", self.folder)
+        self._X_test = load_from_file("x_test.csv", self.folder)
+        self._y_train = load_from_file("y_train.csv", self.folder)
+        self._y_test = load_from_file("y_test.csv", self.folder)
+
+
+class UCI_WRANGLER(WRANGLER):
 
     def __init__(self,
                  data_file,
@@ -119,7 +253,7 @@ class UCI_WRANGLER(object):
                 writer = csv.writer(fp)
                 if x_header:
                     self.logger.info("Adding x header")
-                    writer.writerow(self.data.columns)
+                    writer.writerow(self.meta['x_columns'])
                 if y_header:
                     self.logger.info("Adding y header")
                     if len(data[0]) > 1:
@@ -136,42 +270,3 @@ class UCI_WRANGLER(object):
         write_to_file(self._y_train, "y_train.csv", folder, y_header=True)
         write_to_file(self._y_test, "y_test.csv", folder, y_header=True)
         self.logger.info("train test are in folder {}".format(folder))
-
-    @property
-    def X_train(self):
-        if self._X_train is None:
-            raise AttributeError(
-                "Train test split must be created before getting X train")
-        return self._X_train
-
-    @property
-    def X_test(self):
-        if self._X_test is None:
-            raise AttributeError(
-                "Train test split must be created before getting X test")
-        return self._X_test
-
-    @property
-    def y_train(self):
-        if self._y_train is None:
-            raise AttributeError(
-                "Train test split must be created before getting y train")
-        return self._y_train
-
-    @property
-    def y_test(self):
-        if self._y_test is None:
-            raise AttributeError(
-                "Train test split must be created before getting y test")
-        return self._y_test
-
-    @property
-    def data_lengths(self):
-        """xtrain, xtest, ytrain, ytest lenghts
-        """
-        return (
-            len(self.X_train),
-            len(self.X_test),
-            len(self.y_train),
-            len(self.y_test),
-        )
