@@ -30,9 +30,13 @@
             "batch_size": 243,
             "learning_rate": 0.0005,
             "num_epochs": 1000
+        },
+        "propneat": {
+            "epochs_per_generation": 25,
+            "max_n_generations": 10,
+            "base_config_path": "./config-bchard"
         }
     },
     "random_seed": 42,
-    "train_test_ratio": 0.15,
-    "max_n_generations": 200
+    "train_test_ratio": 0.15
 }

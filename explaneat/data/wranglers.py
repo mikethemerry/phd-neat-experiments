@@ -131,6 +131,34 @@ class WRANGLER(object):
         )
 
     @property
+    def train_sets_as_np(self):
+        return (
+            self.X_train.to_numpy(),
+            self.y_train.to_numpy()
+        )
+
+    @property
+    def test_sets_as_np(self):
+        return (
+            self.X_test.to_numpy(),
+            self.y_test.to_numpy()
+        )
+
+    @property
+    def train_sets_as_tensor(self):
+        return (
+            self.X_train.to_numpy(),
+            self.y_train.to_numpy()
+        )
+
+    @property
+    def test_sets_as_tensor(self):
+        return (
+            self.X_test.to_numpy(),
+            self.y_test.to_numpy()
+        )
+
+    @property
     def input_size(self):
         return self.X_train.shape[1]
 
