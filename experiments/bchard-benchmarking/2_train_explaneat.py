@@ -2,6 +2,7 @@ import argparse
 import os
 import datetime
 import random
+import json
 
 from explaneat.experimenter.experiment import GenericExperiment
 from explaneat.data.wranglers import GENERIC_WRANGLER
@@ -170,7 +171,7 @@ for iteration_no in range(1):
     propneat_results = [r[0] for r in propneat_results_tt.detach().numpy()]
 
     preds_results = Result(
-        propneat_results,
+        json.dumps(list(propneat_results)),
         "propneat_prediction",
         experiment.config['experiment']['name'],
         experiment.config['data']['raw_location'],

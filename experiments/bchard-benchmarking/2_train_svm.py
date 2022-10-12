@@ -1,6 +1,7 @@
 from sklearn.svm import SVC
 import argparse
 import os
+import json
 
 from explaneat.experimenter.experiment import GenericExperiment
 
@@ -49,7 +50,7 @@ svm_preds = svm_model.predict(X_test)
 
 
 preds_results = Result(
-    svm_preds,
+    json.dumps(list(svm_preds)),
     "svm_predictions",
     experiment.config['experiment']['name'],
     experiment.config['data']['raw_location'],

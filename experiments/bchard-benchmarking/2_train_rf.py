@@ -2,6 +2,7 @@
 from sklearn.ensemble import RandomForestRegressor
 import argparse
 import os
+import json
 
 from explaneat.experimenter.experiment import GenericExperiment
 
@@ -53,7 +54,7 @@ rf_preds = rf.predict(X_test)
 
 
 preds_results = Result(
-    rf_preds,
+    json.dumps(list(rf_preds)),
     "rf_predictions",
     experiment.config['experiment']['name'],
     experiment.config['data']['raw_location'],

@@ -2,6 +2,7 @@
 from sklearn.linear_model import LinearRegression
 import argparse
 import os
+import json
 
 from explaneat.experimenter.experiment import GenericExperiment
 
@@ -48,7 +49,7 @@ regression_model.fit(X_train, y_train)
 regression_preds = [pred[0] for pred in regression_model.predict(X_test)]
 
 preds_results = Result(
-    regression_preds,
+    json.dumps(list(regression_preds)),
     "regression_predictions",
     experiment.config['experiment']['name'],
     experiment.config['data']['raw_location'],

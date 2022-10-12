@@ -23,17 +23,17 @@
         "config_file": "qwer",
         "svm": {},
         "random_forest": {
-            "n_estimators": 1000
+            "n_estimators": 5000
         },
         "regression": {},
         "neural_network": {
             "batch_size": 243,
-            "learning_rate": 0.0005,
-            "num_epochs": 1000
+            "learning_rate": 0.001,
+            "num_epochs": 2500
         },
         "propneat": {
             "epochs_per_generation": 25,
-            "max_n_generations": 10,
+            "max_n_generations": 100,
             "base_config_path": "./config-bchard"
         }
     },

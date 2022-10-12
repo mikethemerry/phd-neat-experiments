@@ -1,5 +1,6 @@
 import argparse
 import os
+import json
 
 from explaneat.experimenter.experiment import GenericExperiment
 from explaneat.data.wranglers import GENERIC_WRANGLER
@@ -126,10 +127,10 @@ for epoch in range(model_config['num_epochs']):
 nn_preds = torch.sigmoid(nn_model.forward(torch.from_numpy(
     X_test.to_numpy()).float().to(device)).to(device)).detach().numpy()
 
-nn_preds = [pred[0] for pred in nn_preds]
+nn_preds = [float(pred[0]) for pred in nn_preds]
 
 preds_results = Result(
-    nn_preds,
+    json.dumps(list(nn_preds)),
     "nn_prediction",
     experiment.config['experiment']['name'],
     experiment.config['data']['raw_location'],

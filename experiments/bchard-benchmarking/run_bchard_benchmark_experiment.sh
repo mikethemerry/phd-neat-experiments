@@ -30,6 +30,8 @@ Help()
 
 # Set variables
 Step=1
+CONFIG=./bchard_benchmarking_experiment_config.json
+SHAFILE=./sha_file.json
 
 ############################################################
 # Process the input options. Add options as needed.        #
@@ -52,19 +54,20 @@ echo "Starting at $Step!"
 ## Step 1
 if (($Step <= 0));
 then
-   ipython 0_create_experiment.py ./experiment_config.json ./sha_file.json
+   ipython 0_create_experiment.py $CONFIG $SHAFILE
 fi
 
 if (($Step <= 1));
 then
-   ipython 1_prepare_data.py ./experiment_config.json ./sha_file.json
+   ipython 1_prepare_data.py $CONFIG $SHAFILE
 fi
 
 
 if (($Step <= 2));
 then
-   ipython 2_train_svm.py ./experiment_config.json ./sha_file.json
-   ipython 2_train_rf.py ./experiment_config.json ./sha_file.json
-   ipython 2_train_regression.py ./experiment_config.json ./sha_file.json
-   ipython 2_train_nn.py ./experiment_config.json ./sha_file.json
+   ipython 2_train_svm.py $CONFIG $SHAFILE
+   ipython 2_train_rf.py $CONFIG $SHAFILE
+   ipython 2_train_regression.py $CONFIG $SHAFILE
+   ipython 2_train_nn.py $CONFIG $SHAFILE
+   ipython 2_train_explaneat.py $CONFIG $SHAFILE
 fi
