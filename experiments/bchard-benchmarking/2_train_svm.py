@@ -1,12 +1,12 @@
 from sklearn.svm import SVC
+from sklearn.model_selection import RandomizedSearchCV
+
 import argparse
 import os
 import json
 
 from explaneat.experimenter.experiment import GenericExperiment
-
 from explaneat.data.wranglers import GENERIC_WRANGLER
-
 from explaneat.experimenter.results import Result
 
 
@@ -44,9 +44,21 @@ X_test, y_test = generic_wrangler.test_sets
 # ------------------- train model ------------------------------
 
 svm_model = SVC()
+param_vals = experiment.config['model']['svm']['hyperparameter_ranges']
 
-svm_model.fit(X_train, y_train)
-svm_preds = svm_model.predict(X_test)
+
+random_svm = RandomizedSearchCV(estimator=svm_model,
+                                param_distributions=param_vals,
+                                n_iter=experiment.config['hyperparam_tuning']['n_iterations'],
+                                scoring='accuracy',
+                                cv=experiment.config['hyperparam_tuning']['n_iterations'],
+                                refit=True,
+                                n_jobs=-1,
+                                random_state=experiment.config['random_seed'])
+
+
+random_svm.fit(X_train, y_train)
+svm_preds = random_svm.predict(X_test)
 
 
 preds_results = Result(

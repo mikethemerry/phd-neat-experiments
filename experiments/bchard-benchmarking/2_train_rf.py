@@ -1,4 +1,5 @@
 # Import the model we are using
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import RandomForestRegressor
 import argparse
 import os
@@ -39,18 +40,32 @@ processed_data_location = experiment.data_folder
 generic_wrangler = GENERIC_WRANGLER(processed_data_location)
 
 X_train, y_train = generic_wrangler.train_sets
-X_test, y_test = generic_wrangler.test_sets
+X_test = generic_wrangler.X_test
 
 
-# ------------------- train model ------------------------------
+# ------------------- Hyperparameter setup ------------------------------
 
-# Instantiate model with 1000 decision trees
-rf = RandomForestRegressor(random_state=experiment.random_seed,
-                           **experiment.config['model']['random_forest'])
+
+model = RandomForestRegressor(random_state=experiment.random_seed)
+param_vals = experiment.config['model']['random_forest']['hyperparameter_ranges']
+random_rf = RandomizedSearchCV(estimator=model,
+                               param_distributions=param_vals,
+                               n_iter=experiment.config['hyperparam_tuning']['n_iterations'],
+                               scoring='accuracy',
+                               cv=experiment.config['hyperparam_tuning']['n_iterations'],
+                               refit=True,
+                               n_jobs=-1,
+                               random_state=experiment.config['random_seed'])
+
+#Training and prediction
+
+random_rf.fit(X_train, y_train)
+preds = random_rf.best_estimator_.predict(X_test)
+
 # Train the model on training data
-rf.fit(X_train, y_train)
+random_rf.fit(X_train, y_train)
 # Use the forest's predict method on the test data
-rf_preds = rf.predict(X_test)
+rf_preds = random_rf.predict(X_test)
 
 
 preds_results = Result(

@@ -102,6 +102,7 @@ criterion = nn.BCEWithLogitsLoss().to(device)
 optimizer = torch.optim.Adam(
     nn_model.parameters(), lr=model_config['learning_rate'])
 
+
 # ------------------- train model ------------------------------
 
 for epoch in range(model_config['num_epochs']):

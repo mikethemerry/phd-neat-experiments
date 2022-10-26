@@ -21,9 +21,43 @@
     },
     "model": {
         "config_file": "qwer",
-        "svm": {},
+        "svm": {
+            "hyperparameter_ranges": {
+                "C": [
+                    0.1,
+                    1,
+                    10,
+                    100,
+                    1000
+                ],
+                "gamma": [
+                    1,
+                    0.1,
+                    0.01,
+                    0.001,
+                    0.0001
+                ],
+                "kernel": [
+                    "rbf"
+                ]
+            }
+        },
         "random_forest": {
-            "n_estimators": 5000
+            "n_estimators": 5000,
+            "hyperparameter_ranges": {
+                "max_depth": [
+                    200,
+                    500,
+                    800,
+                    1100
+                ],
+                "n_estimators": [
+                    100,
+                    200,
+                    300,
+                    400
+                ]
+            }
         },
         "regression": {},
         "neural_network": {
@@ -36,6 +70,10 @@
             "max_n_generations": 100,
             "base_config_path": "./config-bchard"
         }
+    },
+    "hyperparam_tuning": {
+        "n_iter": 100,
+        "cv": 5
     },
     "random_seed": 42,
     "train_test_ratio": 0.15
