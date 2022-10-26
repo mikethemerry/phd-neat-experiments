@@ -67,13 +67,14 @@
         },
         "propneat": {
             "epochs_per_generation": 25,
-            "max_n_generations": 100,
+            "max_n_generations": 250,
             "base_config_path": "./config-bchard"
         }
     },
     "hyperparam_tuning": {
-        "n_iter": 100,
-        "cv": 5
+        "n_iter": 500,
+        "cv": 5,
+        "scoring": "roc_auc"
     },
     "random_seed": 42,
     "train_test_ratio": 0.15

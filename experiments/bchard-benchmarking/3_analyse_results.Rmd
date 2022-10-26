@@ -13,7 +13,10 @@ library(pROC)
 experiment_sha <- "24c00ce9" # 24088379
 experiment_sha <- "b53e57d1" 
 experiment_sha <- "24088379"
-
+experiment_sha <- "b4c86de1"
+sha_file <- "./sha_file.json"
+sha_doc <- rjson::fromJSON(file=sha_file)
+experiment_sha <- sha_doc$sha
 ```
 
 # Data ingest

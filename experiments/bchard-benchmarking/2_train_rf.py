@@ -50,9 +50,9 @@ model = RandomForestRegressor(random_state=experiment.random_seed)
 param_vals = experiment.config['model']['random_forest']['hyperparameter_ranges']
 random_rf = RandomizedSearchCV(estimator=model,
                                param_distributions=param_vals,
-                               n_iter=experiment.config['hyperparam_tuning']['n_iterations'],
-                               scoring='accuracy',
-                               cv=experiment.config['hyperparam_tuning']['n_iterations'],
+                               n_iter=experiment.config['hyperparam_tuning']['n_iter'],
+                               scoring=experiment.config['hyperparam_tuning']['scoring'],
+                               cv=experiment.config['hyperparam_tuning']['cv'],
                                refit=True,
                                n_jobs=-1,
                                random_state=experiment.config['random_seed'])
