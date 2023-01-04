@@ -74,7 +74,7 @@ base_config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                           neat.DefaultSpeciesSet, neat.DefaultStagnation,
                           config_path)
 
-
+base_config.pop_size = experiment.config['model']['propneat']['population_size']
 # ------------------- Define model ------------------------------
 
 
@@ -109,7 +109,7 @@ def instantiate_population(config, xs, ys):
 # ------------------- train model ------------------------------
 my_random_seed = experiment.config["random_seed"]
 
-for iteration_no in range(1):
+for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]):
     my_random_seed = experiment.config["random_seed"] + iteration_no
     random.seed(my_random_seed)
 
@@ -176,12 +176,61 @@ for iteration_no in range(1):
         experiment.config['experiment']['name'],
         experiment.config['data']['raw_location'],
         experiment.experiment_sha,
-        0,
+        iteration_no,
         {
             "iteration": iteration_no
         }
     )
     experiment.results_database.add_result(preds_results)
+
+    experiment.results_database.save()
+
+    explainer.net.retrain(X_train, y_train, n_epochs=350)
+
+    propneat_retrain_results_tt = explainer.net.forward(X_test_tt)
+    propneat_retrain_results = [r[0]
+                                for r in propneat_retrain_results_tt.detach().numpy()]
+
+    preds_results = Result(
+        json.dumps(list(propneat_retrain_results)),
+        "propneat_retrain_prediction_short",
+        experiment.config['experiment']['name'],
+        experiment.config['data']['raw_location'],
+        experiment.experiment_sha,
+        iteration_no,
+        {
+            "iteration": iteration_no
+        }
+    )
+    experiment.results_database.add_result(preds_results)
+
+    experiment.create_logging_header(
+        "Ending {} - variation 1".format(__file__), 50)
+
+    experiment.create_logging_header(
+        "Starting {} - variation 2".format(__file__), 50)
+
+    explainer.net.reinitialse_network_weights()
+    explainer.net.retrain(X_train, y_train,
+                          n_epochs=experiment.config['model']['propneat_retrain']['n_epochs'])
+
+    propneat_retrain_results_tt = explainer.net.forward(X_test_tt)
+    propneat_retrain_results = [r[0]
+                                for r in propneat_retrain_results_tt.detach().numpy()]
+
+    preds_results = Result(
+        json.dumps(list(propneat_retrain_results)),
+        "propneat_retrain_prediction_long",
+        experiment.config['experiment']['name'],
+        experiment.config['data']['raw_location'],
+        experiment.experiment_sha,
+        iteration_no,
+        {
+            "iteration": iteration_no
+        }
+    )
+    experiment.results_database.add_result(preds_results)
+    experiment.results_database.save()
 
     # end_time = datetime.now()
 
@@ -209,3 +258,11 @@ for iteration_no in range(1):
 
 
 experiment.create_logging_header("Ending {}".format(__file__), 50)
+
+
+experiment.create_logging_header(
+    "Starting {} - variation 1".format(__file__), 50)
+
+
+experiment.create_logging_header(
+    "Ending {} - variation 2".format(__file__), 50)

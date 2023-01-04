@@ -19,6 +19,11 @@ sha_doc <- rjson::fromJSON(file=sha_file)
 experiment_sha <- sha_doc$sha
 ```
 
+```{r}
+experiment_sha
+```
+
+
 # Data ingest
 
 ```{r}
@@ -52,12 +57,57 @@ compute_auc <- function(preds){
     my_roc <- roc(my_tib, y, preds)
     return(as.numeric(my_roc$auc[[1]]))
 }
+compute_roc <- function(preds){
+    my_tib<-tibble(y_test, preds)
+    return(roc(my_tib, y, preds))
+}
 ```
+
 
 
 ```{r}
 predictions$auc <- map(predictions$value, compute_auc)
+predictions$roc <- map(predictions$value, compute_roc)
+
+predictions <- predictions %>% 
+  rowwise() %>%
+  mutate(
+      sensitivities = list(roc$sensitivities),
+     specificities = list(roc$specificities))
+
+predictions %>%
+  select(starts_with("s")) %>%
+  glimpse()
 ```
+
+
+```{r}
+
+long_preds <- predictions %>%
+  unnest_longer(c("sensitivities","specificities")) %>%
+  group_by(measurementType,iteration,sensitivities) %>%
+  summarise(specificities = max(specificities))
+```
+
+```{r}
+long_preds %>%
+  view
+```
+
+
+```{r}
+long_preds %>%
+  ggplot(aes(1-specificities, 
+             sensitivities, 
+             group=interaction(measurementType,iteration),
+             color=measurementType)) +
+  geom_line() +
+  facet_wrap(~iteration) +
+  geom_segment(aes(x=0, y=0, xend=1, yend=1), colour="black")
+  
+```
+
+
 ```{r}
 predictions %>% 
   select(-value,
@@ -70,13 +120,24 @@ predictions %>%
 ```{r}
 predictions %>%
   select(measurementType,
+         iteration,
          value,
          auc) %>%
   view
 ```
 
-
 ```{r}
-y_test
+predictions %>%
+  select(measurementType,
+         value,
+         auc) %>%
+  mutate(auc = as.numeric(auc)) %>%
+  group_by(measurementType) %>%
+  summarise(mean_auc = mean(auc))
 ```
+
+
+
+
+
 

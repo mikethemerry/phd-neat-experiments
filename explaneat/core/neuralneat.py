@@ -7,6 +7,8 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
+
 
 import pprint
 
@@ -19,7 +21,15 @@ LAYER_TYPE_OUTPUT = "OUTPUT"
 
 LAYER_ACTIVATION_RELU = "ReLU"
 LAYER_ACTIVATION_SIGMOID = "Sigmoid"
+LAYER_ACTIVATION_LEAKYRELU = "Leaky ReLU"
 LAYER_ACTIVATION_INPUT = "Input"
+
+
+LAYER_ACTIVATION_FUNCTIONS = {
+    "ReLU": torch.relu,
+    "Sigmoid": torch.sigmoid,
+    "Leaky ReLU": nn.LeakyReLU
+}
 
 
 class NeuralNeat(nn.Module):
@@ -243,6 +253,16 @@ class NeuralNeat(nn.Module):
 
         return layers, node_tracker
 
+    def reinitialse_network_weights(self):
+        for w_id, w in self.weights.items():
+            if w_id > 0:
+                w = nn.init.kaiming_normal_(w)
+        for b_id, b in self.biases.items():
+            try:
+                b = nn.init.kaiming_normal_(b)
+            except ValueError:
+                b = nn.init.normal_(b)
+
     def update_genome_weights(self):
         for layer_id, layer in self.layers.items():
             for genome_location, weight_location in layer['input_map'].items():
@@ -326,8 +346,12 @@ class NeuralNeat(nn.Module):
             # print(self.biases[layer_id])
 
             try:
-                self._outputs[layer_id] = torch.sigmoid(torch.matmul(
-                    layer_input, self.weights[layer_id]) + self.biases[layer_id])
+                if layer_type == LAYER_TYPE_CONNECTED:
+                    self._outputs[layer_id] = torch.sigmoid(torch.matmul(
+                        layer_input, self.weights[layer_id]) + self.biases[layer_id])
+                else:
+                    self._outputs[layer_id] = torch.sigmoid(torch.matmul(
+                        layer_input, self.weights[layer_id]) + self.biases[layer_id])
             except Exception as e:
                 print("HAD A big error with these details")
                 print(e)
@@ -485,6 +509,26 @@ class NeuralNeat(nn.Module):
         print(self.shapes())
         print("---===---===---===")
 
+    def retrain(self, xs, ys, n_epochs=50, report_every_n=50):
+
+        if not type(xs) is torch.Tensor:
+            xs = torch.tensor(xs, dtype=torch.float64)
+        if not type(ys) is torch.Tensor:
+            ys = torch.tensor(ys, dtype=torch.float64)
+
+        optimizer = self.optimiser(self.parameters(), lr=1.5)
+
+        optimizer.zero_grad()
+        for i in range(n_epochs):
+
+            preds = self.forward(xs)
+            loss = F.mse_loss(preds, ys).sqrt()
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            if i % report_every_n == 0:
+                print(loss)
+
 
 class NodeMapping(object):
     """Holds all information regarding the node mapping for a NeuralNeat network
@@ -639,7 +683,7 @@ class NodeMapping(object):
 
             # LAYER TYPES!!
             layer['layer_type'] = LAYER_TYPE_CONNECTED
-            layer['layer_activation'] = LAYER_ACTIVATION_RELU
+            layer['layer_activation'] = LAYER_ACTIVATION_LEAKYRELU
             # If I have the output node, I'm an output
             if 0 in layer['nodes']:
                 layer['is_output_layer'] = True

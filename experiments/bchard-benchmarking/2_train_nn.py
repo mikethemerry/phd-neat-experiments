@@ -92,8 +92,54 @@ class NeuralNet(nn.Module):
         return out
 
 
-# ------------------- instantiate model ------------------------------
+# ------------------- prepare early stopping  ------------------------
 
+class EarlyStopping():
+    def __init__(self,
+                 tolerance=5,
+                 reset_tolerance=10,
+                 min_delta=0):
+        """Early stopping method that stops after tolerance, but if training
+        reengages for reset_tolerance it continues
+
+        Args:
+            tolerance (int, optional): number of epochs without progress before 
+            stopping. Defaults to 5.
+            reset_tolerance (int, optional): number of epochs of improvement after
+            to reset tolerance to 0. Defaults to 10.
+            min_delta (float, optional): minimum amount of improvement to be called
+            improvement. Defaults to 0.
+        """
+        self.train_losses = []
+        self.validation_losses = []
+
+        self.tolerance = tolerance
+        self.reset_tolerance = reset_tolerance
+        self.min_delta = min_delta
+
+        self.counter = 0
+        self.reset_counter = 0
+        self.early_stop = False
+
+    def __call__(self,
+                 train_loss,
+                 validation_loss):
+        self.train_losses.append(train_loss)
+        self.validation_losses.append(validation_loss)
+
+        if (validation_loss - train_loss) > self.min_delta:
+            self.counter += 1
+            self.reset_counter = 0
+            if self.counter >= self.tolerance:
+                self.early_stop = True
+        else:
+            self.reset_counter += 1
+            if self.reset_counter >= self.reset_tolerance:
+                self.counter = 0
+                self.reset_counter = 0
+
+
+# ------------------- instantiate model ------------------------------
 
 nn_model = NeuralNet(generic_wrangler.input_size,
                      generic_wrangler.output_size).to(device)
@@ -105,23 +151,27 @@ optimizer = torch.optim.Adam(
 
 # ------------------- train model ------------------------------
 
+
 for epoch in range(model_config['num_epochs']):
-    for i, (xsnn, ysnn) in enumerate(train_loader):
-        # Move tensors to the configured device
-        xsnn = xsnn.float().to(device)
-        ysnn = ysnn.view(-1, 1).float().to(device)
 
-        # Forward pass
-        outputs = nn_model(xsnn)
-        train_loss = criterion(outputs, ysnn)
+    # for i, (xsnn, ysnn) in enumerate(train_loader):
+    #     # Move tensors to the configured device
+    #     xsnn = xsnn.float().to(device)
+    #     ysnn = ysnn.view(-1, 1).float().to(device)
+    xsnn = torch.tensor(X_train).to(device)
+    ysnn = torch.tensor(y_train).to(device)
 
-        # Backward and optimize
-        optimizer.zero_grad()
-        train_loss.backward()
-        optimizer.step()
-        if (epoch+1) % 50 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                  .format(epoch+1, model_config['num_epochs'], i+1, total_step, train_loss.item()))
+    # Forward pass
+    outputs = nn_model(xsnn)
+    train_loss = criterion(outputs, ysnn)
+
+    # Backward and optimize
+    optimizer.zero_grad()
+    train_loss.backward()
+    optimizer.step()
+    if (epoch+1) % 50 == 0:
+        print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
+              .format(epoch+1, model_config['num_epochs'], i+1, total_step, train_loss.item()))
 
 # ------------------- get predictions ------------------------------
 

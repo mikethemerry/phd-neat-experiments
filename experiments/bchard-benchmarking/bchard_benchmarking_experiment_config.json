@@ -53,9 +53,12 @@
                 ],
                 "n_estimators": [
                     100,
-                    200,
-                    300,
-                    400
+                    250,
+                    500,
+                    750,
+                    1000,
+                    2500,
+                    5000
                 ]
             }
         },
@@ -63,19 +66,24 @@
         "neural_network": {
             "batch_size": 243,
             "learning_rate": 0.001,
-            "num_epochs": 2500
+            "num_epochs": 250
         },
         "propneat": {
+            "n_iterations": 5,
+            "population_size": 150,
             "epochs_per_generation": 25,
             "max_n_generations": 250,
             "base_config_path": "./config-bchard"
+        },
+        "propneat_retrain": {
+            "n_epochs": 2000
         }
     },
     "hyperparam_tuning": {
-        "n_iter": 500,
+        "n_iter": 1000,
         "cv": 5,
         "scoring": "roc_auc"
     },
     "random_seed": 42,
-    "train_test_ratio": 0.15
+    "train_test_ratio": 0.3
 }
