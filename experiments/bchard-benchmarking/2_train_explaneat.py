@@ -167,6 +167,32 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
     )
     experiment.results_database.add_result(skippiness)
 
+    depth = Result(
+        explainer.depth(),
+        "depth",
+        experiment.config['experiment']['name'],
+        experiment.config['data']['raw_location'],
+        experiment.experiment_sha,
+        iteration_no,
+        {
+            "iteration": iteration_no,
+        }
+    )
+    experiment.results_database.add_result(depth)
+
+    param_size = Result(
+        explainer.n_genome_params(),
+        "param_size",
+        experiment.config['experiment']['name'],
+        experiment.config['data']['raw_location'],
+        experiment.experiment_sha,
+        iteration_no,
+        {
+            "iteration": iteration_no,
+        }
+    )
+    experiment.results_database.add_result(param_size)
+
     propneat_results_tt = explainer.net.forward(X_test_tt)
     propneat_results = [r[0] for r in propneat_results_tt.detach().numpy()]
 
@@ -185,8 +211,13 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
 
     experiment.results_database.save()
 
-    explainer.net.retrain(X_train, y_train, n_epochs=350)
+    explainer.net.retrain(X_train, y_train,
+                          n_epochs=experiment.config['model']['propneat_retrain']['n_epochs'], choose_best=True,
+                          validate_split=0.3,
+                          random_seed=experiment.random_seed)
 
+    explainer.net.set_parameters_from_object(
+        explainer.net.retrainer['best_model'])
     propneat_retrain_results_tt = explainer.net.forward(X_test_tt)
     propneat_retrain_results = [r[0]
                                 for r in propneat_retrain_results_tt.detach().numpy()]
@@ -211,9 +242,14 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         "Starting {} - variation 2".format(__file__), 50)
 
     explainer.net.reinitialse_network_weights()
-    explainer.net.retrain(X_train, y_train,
-                          n_epochs=experiment.config['model']['propneat_retrain']['n_epochs'])
 
+    explainer.net.retrain(X_train, y_train,
+                          n_epochs=experiment.config['model']['propneat_retrain']['n_epochs'], choose_best=True,
+                          validate_split=0.3,
+                          random_seed=experiment.random_seed)
+
+    explainer.net.set_parameters_from_object(
+        explainer.net.retrainer['best_model'])
     propneat_retrain_results_tt = explainer.net.forward(X_test_tt)
     propneat_retrain_results = [r[0]
                                 for r in propneat_retrain_results_tt.detach().numpy()]

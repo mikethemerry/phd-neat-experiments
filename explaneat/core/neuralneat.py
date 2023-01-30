@@ -9,6 +9,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+from sklearn.model_selection import train_test_split
+
 
 import pprint
 
@@ -96,6 +98,8 @@ class NeuralNeat(nn.Module):
         self.criterion = criterion
         self.optimiser = optimiser
         self.optimizer = self.optimiser
+
+        self.retrainer = {}
 
     def _create_node_map(self, node):
         pass
@@ -294,6 +298,16 @@ class NeuralNeat(nn.Module):
             #                 # layer['input_weights'][in_weight_location][out_weight_location] = connection_weight
             #                 self.genome.connections[(node_id, node_output_id)].weight = self.weights[layer_id][in_weight_location][out_weight_location]
                 # layer_offset += len(input_layer['nodes'])
+
+    def parameters_to_object(self):
+        return {
+            "weights": self.weights,
+            "biases": self.biases
+        }
+
+    def set_parameters_from_object(self, params):
+        self.weights = params['weights']
+        self.biases = params['biases']
 
     @staticmethod
     def _tt(mat):
@@ -509,7 +523,12 @@ class NeuralNeat(nn.Module):
         print(self.shapes())
         print("---===---===---===")
 
-    def retrain(self, xs, ys, n_epochs=50, report_every_n=50):
+    def retrain(self, xs, ys,
+                n_epochs=50,
+                report_every_n=50,
+                choose_best=False,
+                validate_split=0.3,
+                random_seed=None):
 
         if not type(xs) is torch.Tensor:
             xs = torch.tensor(xs, dtype=torch.float64)
@@ -517,6 +536,19 @@ class NeuralNeat(nn.Module):
             ys = torch.tensor(ys, dtype=torch.float64)
 
         optimizer = self.optimiser(self.parameters(), lr=1.5)
+
+        if choose_best:
+
+            if random_seed is None:
+                raise Exception("Must explicitly choose random seed")
+
+            xs, xs_validate, ys, ys_validate = train_test_split(
+                xs, ys, test_size=validate_split, random_state=random_seed)
+
+            validate_losses = []
+            best_validation_loss = 99999
+            best_model_epoch = 0
+            best_model = self.parameters_to_object()
 
         optimizer.zero_grad()
         for i in range(n_epochs):
@@ -526,8 +558,30 @@ class NeuralNeat(nn.Module):
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+
+            if choose_best:
+                val_preds = self.forward(xs_validate)
+                validate_loss = F.mse_loss(val_preds, ys_validate).sqrt()
+                validate_losses.append(validate_loss)
+                if validate_loss <= best_validation_loss:
+                    best_model = self.parameters_to_object()
+                    best_model_epoch = i
+                    best_validation_loss = validate_loss
+                self.retrainer = {
+                    "validate_losses": validate_losses,
+                    "best_model": best_model,
+                    "best_model_loss": best_validation_loss,
+                    "best_model_epoch": best_model_epoch
+                }
             if i % report_every_n == 0:
-                print(loss)
+                report_string = "{key} : {value}"
+                print("--------- Model reporting --------")
+                print(report_string.format(key="Epoch", value=i))
+                print(report_string.format(key="Loss", value=loss))
+                if choose_best:
+                    for k in ["best_model_loss", "best_model_epoch"]:
+                        print(report_string.format(
+                            key=k, value=self.retrainer[k]))
 
 
 class NodeMapping(object):

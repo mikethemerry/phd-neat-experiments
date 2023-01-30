@@ -123,7 +123,7 @@ predictions %>%
          iteration,
          value,
          auc) %>%
-  view
+  view("Scores")
 ```
 
 ```{r}
@@ -137,7 +137,16 @@ predictions %>%
 ```
 
 
+```{r}
+results %>% glimpse
+```
 
+```{r}
+results %>% 
+  filter(measurementType == "skippiness") %>%
+  group_by(experimentSha) %>%
+  summarise(avg_skippy = mean(as.numeric(value))) 
+```
 
 
 

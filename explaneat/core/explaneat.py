@@ -34,6 +34,9 @@ class ExplaNEAT():
             denseSize += shape[0]*shape[1]
         return nParams/denseSize
 
+    def depth(self):
+        return self.net.n_layers
+
     def node_depth(self, nodeId):
         return self.net.node_mapping.node_mapping[nodeId]['depth']
 
