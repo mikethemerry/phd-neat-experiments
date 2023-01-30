@@ -49,7 +49,7 @@
                     200,
                     300,
                     400,
-                    500,
+                    500
                 ],
                 "n_estimators": [
                     100,
@@ -67,14 +67,15 @@
             "num_epochs": 250
         },
         "propneat": {
-            "n_iterations": 5,
+            "n_iterations": 10,
             "population_size": 250,
             "epochs_per_generation": 25,
             "max_n_generations": 250,
             "base_config_path": "./config-bchard"
         },
         "propneat_retrain": {
-            "n_epochs": 1000
+            "n_epochs": 6000,
+            "n_iterations": 25
         }
     },
     "hyperparam_tuning": {
