@@ -89,22 +89,49 @@ long_preds <- predictions %>%
   summarise(specificities = max(specificities))
 ```
 
-```{r}
-long_preds %>%
-  view
-```
 
 
 ```{r}
 long_preds %>%
+  filter(measurementType != "propneat_retrain_prediction")%>%
   ggplot(aes(1-specificities, 
              sensitivities, 
              group=interaction(measurementType,iteration),
              color=measurementType)) +
   geom_line() +
-  facet_wrap(~iteration) +
   geom_segment(aes(x=0, y=0, xend=1, yend=1), colour="black")
   
+```
+
+```{r}
+long_preds %>%
+  filter( grepl("propne",measurementType) ) %>%
+  ggplot(aes(1-specificities, 
+             sensitivities, 
+             group=interaction(measurementType,iteration),
+             color=measurementType)) +
+  geom_line(alpha=1) +
+  geom_segment(aes(x=0, y=0, xend=1, yend=1), colour="black")
+  
+```
+
+```{r}
+long_preds %>%
+  filter( grepl("propne",measurementType) ) %>%
+  mutate(opacity = if_else(measurementType == "propneat_prediction", 1, 1))%>%
+  ggplot(aes(1-specificities, 
+             sensitivities, 
+             group=interaction(measurementType,iteration),
+             color=measurementType,
+             alpha=opacity)) +
+  geom_line() +
+  facet_wrap(iteration%/%100~.) +
+  geom_segment(aes(x=0, y=0, xend=1, yend=1), colour="black")
+  
+```
+```{r}
+results %>%
+  view("results")
 ```
 
 
@@ -121,7 +148,6 @@ predictions %>%
 predictions %>%
   select(measurementType,
          iteration,
-         value,
          auc) %>%
   view("Scores")
 ```

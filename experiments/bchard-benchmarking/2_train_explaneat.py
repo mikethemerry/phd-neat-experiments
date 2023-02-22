@@ -134,9 +134,9 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         experiment.config['experiment']['name'],
         experiment.config['data']['raw_location'],
         experiment.experiment_sha,
-        iteration_no,
+        iteration_no*100,
         {
-            "iteration": iteration_no
+            "iteration": iteration_no*100
         }
     )
 
@@ -147,9 +147,9 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         experiment.config['experiment']['name'],
         experiment.config['data']['raw_location'],
         experiment.experiment_sha,
-        iteration_no,
+        iteration_no*100,
         {
-            "iteration": iteration_no,
+            "iteration": iteration_no*100,
         }
     )
     experiment.results_database.add_result(g_map)
@@ -160,9 +160,9 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         experiment.config['experiment']['name'],
         experiment.config['data']['raw_location'],
         experiment.experiment_sha,
-        iteration_no,
+        iteration_no*100,
         {
-            "iteration": iteration_no,
+            "iteration": iteration_no*100,
         }
     )
     experiment.results_database.add_result(skippiness)
@@ -173,9 +173,9 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         experiment.config['experiment']['name'],
         experiment.config['data']['raw_location'],
         experiment.experiment_sha,
-        iteration_no,
+        iteration_no*100,
         {
-            "iteration": iteration_no,
+            "iteration": iteration_no*100,
         }
     )
     experiment.results_database.add_result(depth)
@@ -186,9 +186,9 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         experiment.config['experiment']['name'],
         experiment.config['data']['raw_location'],
         experiment.experiment_sha,
-        iteration_no,
+        iteration_no*100,
         {
-            "iteration": iteration_no,
+            "iteration": iteration_no*100,
         }
     )
     experiment.results_database.add_result(param_size)
@@ -202,9 +202,9 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         experiment.config['experiment']['name'],
         experiment.config['data']['raw_location'],
         experiment.experiment_sha,
-        iteration_no,
+        iteration_no*100,
         {
-            "iteration": iteration_no
+            "iteration": iteration_no*100
         }
     )
     experiment.results_database.add_result(preds_results)
@@ -215,7 +215,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         explainer.net.retrain(X_train, y_train,
                               n_epochs=experiment.config['model']['propneat_retrain']['n_epochs'], choose_best=True,
                               validate_split=0.3,
-                              random_seed=experiment.random_seed)
+                              random_seed=experiment.random_seed+my_it)
 
         explainer.net.set_parameters_from_object(
             explainer.net.retrainer['best_model'])
@@ -225,7 +225,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
 
         preds_results = Result(
             json.dumps(list(propneat_retrain_results)),
-            "propneat_retrain_prediction_short",
+            "propneat_retrain_prediction",
             experiment.config['experiment']['name'],
             experiment.config['data']['raw_location'],
             experiment.experiment_sha,
@@ -235,6 +235,40 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
             }
         )
         experiment.results_database.add_result(preds_results)
+
+        experiment.results_database.add_result(Result(
+            explainer.net.retrainer['best_model_epoch'],
+            "propneat_retrain_n_epochs",
+            experiment.config['experiment']['name'],
+            experiment.config['data']['raw_location'],
+            experiment.experiment_sha,
+            iteration_no*100+my_it,
+            {
+                "iteration": iteration_no*100+my_it
+            }
+        ))
+        experiment.results_database.add_result(Result(
+            explainer.net.retrainer['best_model_loss'],
+            "propneat_retrain_best_val_loss",
+            experiment.config['experiment']['name'],
+            experiment.config['data']['raw_location'],
+            experiment.experiment_sha,
+            iteration_no*100+my_it,
+            {
+                "iteration": iteration_no*100+my_it
+            }
+        ))
+        experiment.results_database.add_result(Result(
+            explainer.net.retrainer['validate_losses'],
+            "validate_losses",
+            experiment.config['experiment']['name'],
+            experiment.config['data']['raw_location'],
+            experiment.experiment_sha,
+            iteration_no*100+my_it,
+            {
+                "iteration": iteration_no*100+my_it
+            }
+        ))
 
     experiment.create_logging_header(
         "Ending {} - variation 1".format(__file__), 50)

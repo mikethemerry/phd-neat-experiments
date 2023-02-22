@@ -42,6 +42,7 @@ generic_wrangler = GENERIC_WRANGLER(processed_data_location)
 X_train, y_train = generic_wrangler.train_sets
 X_test = generic_wrangler.X_test
 
+y_train = y_train.values.ravel()
 
 # ------------------- Hyperparameter setup ------------------------------
 

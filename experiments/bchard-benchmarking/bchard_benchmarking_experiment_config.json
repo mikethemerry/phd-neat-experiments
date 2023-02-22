@@ -43,20 +43,28 @@
             }
         },
         "random_forest": {
-            "n_estimators": 500,
+            "n_estimators": 100,
             "hyperparameter_ranges": {
-                "max_depth": [
-                    200,
-                    300,
-                    400,
-                    500
-                ],
                 "n_estimators": [
+                    10,
+                    50,
                     100,
-                    250,
+                    200,
                     500,
-                    750,
                     1000
+                ],
+                "max_depth": [
+                    2,
+                    5,
+                    10,
+                    15
+                ],
+                "min_samples_split": [
+                    2,
+                    5,
+                    10,
+                    15,
+                    20
                 ]
             }
         },
@@ -68,14 +76,14 @@
         },
         "propneat": {
             "n_iterations": 10,
-            "population_size": 250,
-            "epochs_per_generation": 25,
-            "max_n_generations": 250,
+            "population_size": 150,
+            "epochs_per_generation": 15,
+            "max_n_generations": 150,
             "base_config_path": "./config-bchard"
         },
         "propneat_retrain": {
             "n_epochs": 6000,
-            "n_iterations": 25
+            "n_iterations": 10
         }
     },
     "hyperparam_tuning": {

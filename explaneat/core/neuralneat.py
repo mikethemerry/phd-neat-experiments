@@ -560,19 +560,20 @@ class NeuralNeat(nn.Module):
             optimizer.zero_grad()
 
             if choose_best:
-                val_preds = self.forward(xs_validate)
-                validate_loss = F.mse_loss(val_preds, ys_validate).sqrt()
-                validate_losses.append(validate_loss)
-                if validate_loss <= best_validation_loss:
-                    best_model = self.parameters_to_object()
-                    best_model_epoch = i
-                    best_validation_loss = validate_loss
-                self.retrainer = {
-                    "validate_losses": validate_losses,
-                    "best_model": best_model,
-                    "best_model_loss": best_validation_loss,
-                    "best_model_epoch": best_model_epoch
-                }
+                with torch.no_grad():
+                    val_preds = self.forward(xs_validate)
+                    validate_loss = F.mse_loss(val_preds, ys_validate).sqrt()
+                    validate_losses.append(validate_loss)
+                    if validate_loss <= best_validation_loss:
+                        best_model = self.parameters_to_object()
+                        best_model_epoch = i
+                        best_validation_loss = validate_loss
+                    self.retrainer = {
+                        "validate_losses": validate_losses,
+                        "best_model": best_model,
+                        "best_model_loss": best_validation_loss,
+                        "best_model_epoch": best_model_epoch
+                    }
             if i % report_every_n == 0:
                 report_string = "{key} : {value}"
                 print("--------- Model reporting --------")

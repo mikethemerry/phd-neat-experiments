@@ -19,6 +19,7 @@ Help()
    echo "Syntax: scriptTemplate [-s]"
    echo "options:"
    echo "s:     The step to start at."
+   echo "d:     The dataset to work with."
    echo
 }
 
@@ -40,10 +41,16 @@ SHAFILE=./sha_file.json
 while getopts ":s:" option; do
    case $option in
       s) # Enter a name
-         Step=$OPTARG;;
+         Step=$OPTARG
+         ;;
+      d)
+         datasets=$OPTARG
+         ;;
      \?) # Invalid option
-         echo "Error: Invalid option"
-         exit;;
+         echo "Invalid option: -$OPTARG" >&2
+         exit 1
+         ;;
+
    esac
 done
 
@@ -57,17 +64,21 @@ then
    ipython 0_create_experiment.py $CONFIG $SHAFILE
 fi
 
-if (($Step <= 1));
-then
-   ipython 1_prepare_data.py $CONFIG $SHAFILE
-fi
+while IFS= read -r DATA; do
+
+   if (($Step <= 1));
+   then
+      ipython 1_prepare_data.py $CONFIG $SHAFILE
+   fi
 
 
-if (($Step <= 2));
-then
-   ipython 2_train_svm.py $CONFIG $SHAFILE
-   ipython 2_train_rf.py $CONFIG $SHAFILE
-   ipython 2_train_regression.py $CONFIG $SHAFILE
-   ipython 2_train_nn.py $CONFIG $SHAFILE
-   ipython 2_train_explaneat.py $CONFIG $SHAFILE
-fi
+   if (($Step <= 2));
+   then
+      ipython 2_train_svm.py $CONFIG $SHAFILE $DATA
+      ipython 2_train_rf.py $CONFIG $SHAFILE $DATA
+      ipython 2_train_regression.py $CONFIG $SHAFILE $DATA
+      ipython 2_train_nn.py $CONFIG $SHAFILE $DATA
+      ipython 2_train_explaneat.py $CONFIG $SHAFILE $DATA
+   fi
+
+done < "$file_path"
