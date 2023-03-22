@@ -14,6 +14,7 @@ import explaneat.data.utils as utils
 
 from torch.utils.data import Dataset, DataLoader
 
+import pmlb
 
 import logging
 
@@ -282,6 +283,112 @@ class UCI_WRANGLER(WRANGLER):
                 if x_header:
                     self.logger.info("Adding x header")
                     writer.writerow(self.meta['x_columns'])
+                if y_header:
+                    self.logger.info("Adding y header")
+                    if len(data[0]) > 1:
+                        raise NotImplementedError(
+                            "Y Headers only coded for single category output")
+                    writer.writerow(["y"])
+                writer.writerows(data)
+            self.logger.info("Completed to {}".format(path))
+
+        self.logger.info(
+            "sending train test to csv in folder {}".format(folder))
+        write_to_file(self._X_train, "x_train.csv", folder, x_header=True)
+        write_to_file(self._X_test, "x_test.csv", folder, x_header=True)
+        write_to_file(self._y_train, "y_train.csv", folder, y_header=True)
+        write_to_file(self._y_test, "y_test.csv", folder, y_header=True)
+        self.logger.info("train test are in folder {}".format(folder))
+
+
+class PMLB_WRANGLER(WRANGLER):
+
+    def __init__(self,
+                 dataset_name,
+                 config={},
+                 logger=logging.getLogger("experimenter.uci_wrangler")):
+
+        self.logger = logger
+
+        if dataset_name not in pmlb.dataset_names:
+            raise AttributeError("No PMLB dataset with that name")
+        self.dataset_name = dataset_name
+
+        # self.logger.info("Loading meta file")
+        # self.load_meta_file()
+        self.logger.info("Loading raw data file")
+        self.load_raw_data()
+
+        self.logger.info("Preprocessing data")
+        self.preprocess_x()
+        self.preprocess_y()
+        self.logger.info("Finished preprocessing data")
+
+    # def load_meta_file(self):
+    #     if self.meta_file is None:
+    #         raise AttributeError("Must have meta_file set")
+    #     with open(self.meta_file, 'r') as fp:
+    #         self.meta = json.load(fp)
+
+    def load_raw_data(self):
+        if self.dataset_name is None:
+            raise AttributeError("Must have a dataset nameset")
+
+        xs, ys = pmlb.fetch_data(self.dataset_name, return_X_y=True)
+        self.full_data = pmlb.fetch_data(self.dataset_name)
+
+        self.xs_raw = xs
+        self.ys_raw = ys
+
+        # Get the list of column names (excluding the 'target' column)
+        column_names = list(self.full_data.columns)
+        column_names.remove('target')
+        self.x_columns = column_names
+        self.y_columns = "target"
+
+    def preprocess_x(self):
+        self.xs = self.xs_raw.copy()
+        for transform in ["STANDARD_SCALAR"]:
+            self.xs = TRANSFORMERS[transform](self.xs)
+
+    def preprocess_y(self):
+
+        self.ys = self.ys_raw.copy()
+        for transform in []:
+            self.ys = TRANSFORMERS[transform](self.ys)
+
+        self.logger.info("ys shape is {}".format(self.ys.shape))
+        if(len(self.ys.shape)) == 1:
+            self.logger.info("recasting ys to (n,1)")
+            self.ys = self.ys[:, None]
+
+    def create_train_test_split(self,
+                                test_size,
+                                random_state):
+        self.logger.info("Creating train test split")
+        self._X_train, self._X_test, self._y_train, self._y_test = train_test_split(
+            self.xs, self.ys, test_size=test_size, random_state=random_state)
+        self.logger.info("split created")
+
+    def send_train_test_to_device(self, device):
+        self.logger.info("sending train test to device {}".format(device))
+        self._X_train = torch.from_numpy(self._X_train).to(device)
+        self._X_test = torch.from_numpy(self._X_test).to(device)
+        self._y_train = torch.from_numpy(self._y_train).to(device)
+        self._y_test = torch.from_numpy(self._y_test).to(device)
+        self.logger.info("train test are on device {}".format(device))
+
+    def write_train_test_to_csv(self, folder):
+        def write_to_file(data, file, folder, x_header=False, y_header=False):
+            if x_header and y_header:
+                raise Exception("Cannot have both X and Y headers")
+            path = os.path.join(folder, file)
+            self.logger.info("Writing to {}".format(path))
+            with open(path, 'w') as fp:
+                writer = csv.writer(fp)
+                if x_header:
+                    self.logger.info("Adding x header")
+                    writer.writerow(self.x_columns)
                 if y_header:
                     self.logger.info("Adding y header")
                     if len(data[0]) > 1:

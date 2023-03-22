@@ -19,7 +19,7 @@ Help()
    echo "Syntax: scriptTemplate [-s]"
    echo "options:"
    echo "s:     The step to start at."
-   echo "d:     The dataset to work with."
+   echo "d:     The dataset list to work with."
    echo
 }
 
@@ -30,7 +30,7 @@ Help()
 ############################################################
 
 # Set variables
-Step=1
+STEP=1
 CONFIG=./bchard_benchmarking_experiment_config.json
 SHAFILE=./sha_file.json
 
@@ -38,47 +38,47 @@ SHAFILE=./sha_file.json
 # Process the input options. Add options as needed.        #
 ############################################################
 # Get the options
-while getopts ":s:" option; do
-   case $option in
-      s) # Enter a name
-         Step=$OPTARG
-         ;;
-      d)
-         DATA=$OPTARG
-         ;;
-     \?) # Invalid option
-         echo "Invalid option: -$OPTARG" >&2
-         exit 1
-         ;;
-
-   esac
+while getopts "s:d:" opt; do
+  case ${opt} in
+    s ) # process -s option
+        STEP=$OPTARG
+        ;;
+    d ) # process -d option
+        DATA=$OPTARG
+        ;;
+    \? ) echo "Usage: command [-s step] [-d data]" 1>&2
+        exit 1
+        ;;
+    : ) echo "Invalid option: $OPTARG requires an argument" 1>&2
+        exit 1
+        ;;
+  esac
 done
 
-
 echo "*********************************"
-echo "Starting at $Step!"
+echo "Starting at $STEP!"
 
-## Step 1
-if (($Step <= 0));
+## STEP 1
+if (($STEP <= 0));
 then
    ipython 0_create_experiment.py $CONFIG $SHAFILE
 fi
 
 while IFS= read -r DATA; do
 
-   if (($Step <= 1));
+   if (($STEP <= 1));
    then
-      ipython 1_prepare_data.py $CONFIG $SHAFILE $DATA
+      ipython 1_prepare_data.py $CONFIG $SHAFILE "$DATA"
    fi
 
 
-   if (($Step <= 2));
+   if (($STEP <= 2));
    then
-      ipython 2_train_svm.py $CONFIG $SHAFILE $DATA
-      ipython 2_train_rf.py $CONFIG $SHAFILE $DATA
-      ipython 2_train_regression.py $CONFIG $SHAFILE $DATA
-      ipython 2_train_nn.py $CONFIG $SHAFILE $DATA
-      ipython 2_train_explaneat.py $CONFIG $SHAFILE $DATA
+      ipython 2_train_svm.py $CONFIG $SHAFILE "$DATA"
+      ipython 2_train_rf.py $CONFIG $SHAFILE "$DATA"
+      ipython 2_train_regression.py $CONFIG $SHAFILE "$DATA"
+      ipython 2_train_nn.py $CONFIG $SHAFILE "$DATA"
+      ipython 2_train_explaneat.py $CONFIG $SHAFILE "$DATA"
    fi
 
 done < "$file_path"

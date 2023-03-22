@@ -26,6 +26,9 @@ parser.add_argument("ref_file",
                     metavar='experiment_reference_file',
                     type=str,
                     help="Path to experiment ref file")
+parser.add_argument('data_name', metavar='experiment_data_file', type=str,
+                    help="Path to experiment data")
+
 
 args = parser.parse_args()
 
@@ -48,7 +51,8 @@ device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
 # ---------------- Load data ------------------------------
 
-processed_data_location = experiment.data_folder
+base_data_location = experiment.data_folder
+processed_data_location = os.path.join(base_data_location, args.data_name)
 
 generic_wrangler = GENERIC_WRANGLER(processed_data_location)
 
@@ -68,31 +72,32 @@ train_loader = DataLoader(train_data,
 
 total_step = len(train_loader)
 
+
 def train_val_split(xs, ys, val_frac=0.1, shuffle=True, seed=0, to_float=True):
     """
     Splits a PyTorch tensor into training and validation sets.
     """
     # Set the seed for reproducibility
     torch.manual_seed(seed)
-    
+
     # Get the number of samples
     num_samples = xs.size()[0]
-    
+
     # Shuffle the data if desired
     if shuffle:
         perm = torch.randperm(num_samples)
         xs = xs[perm]
         ys = ys[perm]
-    
+
     # Calculate the number of samples in the validation set
     num_val = int(num_samples * val_frac)
-    
+
     # Split the data into training and validation sets
     xs_train = xs[:-num_val]
     ys_train = ys[:-num_val]
     xs_val = xs[-num_val:]
     ys_val = ys[-num_val:]
-    
+
     if to_float:
         xs_train = xs_train.float()
         ys_train = ys_train.float()
@@ -105,30 +110,33 @@ def train_val_split(xs, ys, val_frac=0.1, shuffle=True, seed=0, to_float=True):
 xsnn = torch.tensor(X_train.values).to(device)
 ysnn = torch.tensor(y_train.values).to(device)
 
-X_train, y_train, X_val, y_val = train_val_split(xsnn, ysnn, seed=experiment.config["random_seed"])
+X_train, y_train, X_val, y_val = train_val_split(
+    xsnn, ysnn, seed=experiment.config["random_seed"])
 
 
 # ------------------- Define model ------------------------------
 
 
 class DenseNet(nn.Module):
-    ## From ChatGPT
+    # From ChatGPT
     def __init__(self, input_size, hidden_layers, output_size, dropout_p=0.25):
         super(DenseNet, self).__init__()
-        self.hidden_layers = nn.ModuleList([nn.Linear(input_size, hidden_layers[0])])
+        self.hidden_layers = nn.ModuleList(
+            [nn.Linear(input_size, hidden_layers[0])])
         layer_sizes = zip(hidden_layers[:-1], hidden_layers[1:])
-        self.hidden_layers.extend([nn.Linear(h1, h2) for h1, h2 in layer_sizes])
+        self.hidden_layers.extend([nn.Linear(h1, h2)
+                                  for h1, h2 in layer_sizes])
         self.output = nn.Linear(hidden_layers[-1], output_size)
         self.dropout_p = dropout_p
-        
+
     def forward(self, x):
         for linear in self.hidden_layers:
             x = F.relu(linear(x))
             x = F.dropout(x, p=self.dropout_p, training=self.training)
         x = self.output(x)
         x = torch.sigmoid(x)
-        return x    
-    
+        return x
+
     def train(self, x, y, epochs, validation_data, criterion=nn.BCELoss(), patience=50):
         optimizer = optim.SGD(self.parameters(), lr=0.01)
         validation_loss_min = float('inf')
@@ -140,7 +148,8 @@ class DenseNet(nn.Module):
             loss.backward()
             optimizer.step()
             with torch.no_grad():
-                validation_loss = criterion(self(validation_data[0]), validation_data[1])
+                validation_loss = criterion(
+                    self(validation_data[0]), validation_data[1])
                 if validation_loss <= validation_loss_min:
                     stop_epoch = 0
                     validation_loss_min = validation_loss
@@ -151,6 +160,7 @@ class DenseNet(nn.Module):
                     self.load_state_dict(best_weights)
                     break
         return self
+
 
 class NeuralNet(nn.Module):
     def __init__(self, input_size, output_size, hidden_width=64):
@@ -227,15 +237,15 @@ class EarlyStopping():
 # ------------------- instantiate model ------------------------------
 
 # nn_model = NeuralNet(generic_wrangler.input_size,
-                    #  generic_wrangler.output_size).to(device)
+                #  generic_wrangler.output_size).to(device)
 
 # criterion = nn.BCEWithLogitsLoss().to(device)
 # optimizer = torch.optim.Adam(
     # nn_model.parameters(), lr=model_config['learning_rate'])
 
 model = DenseNet(generic_wrangler.input_size,
-                [32, 64, 64, 32],
-                generic_wrangler.output_size).to(device)
+                 [32, 64, 64, 32],
+                 generic_wrangler.output_size).to(device)
 
 # ------------------- train model ------------------------------
 
@@ -273,7 +283,7 @@ preds_results = Result(
     json.dumps(list(nn_preds)),
     "nn_prediction",
     experiment.config['experiment']['name'],
-    experiment.config['data']['raw_location'],
+    args.data_name,
     experiment.experiment_sha,
     0,
     {

@@ -40,6 +40,8 @@ parser.add_argument("ref_file",
                     metavar='experiment_reference_file',
                     type=str,
                     help="Path to experiment ref file")
+parser.add_argument('data_name', metavar='experiment_data_file', type=str,
+                    help="Path to experiment data")
 
 args = parser.parse_args()
 
@@ -55,7 +57,9 @@ model_config = experiment.config['model']['neural_network']
 
 # ---------------- Load data ------------------------------
 
-processed_data_location = experiment.data_folder
+base_data_location = experiment.data_folder
+processed_data_location = os.path.join(base_data_location, args.data_name)
+
 
 generic_wrangler = GENERIC_WRANGLER(processed_data_location)
 
@@ -132,7 +136,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         g,
         "best_genome",
         experiment.config['experiment']['name'],
-        experiment.config['data']['raw_location'],
+        args.data_name,
         experiment.experiment_sha,
         iteration_no*100,
         {
@@ -145,7 +149,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         visualize.draw_net(config, g).source,
         "best_genome_map",
         experiment.config['experiment']['name'],
-        experiment.config['data']['raw_location'],
+        args.data_name,
         experiment.experiment_sha,
         iteration_no*100,
         {
@@ -158,7 +162,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         explainer.skippines(),
         "skippiness",
         experiment.config['experiment']['name'],
-        experiment.config['data']['raw_location'],
+        args.data_name,
         experiment.experiment_sha,
         iteration_no*100,
         {
@@ -171,7 +175,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         explainer.depth(),
         "depth",
         experiment.config['experiment']['name'],
-        experiment.config['data']['raw_location'],
+        args.data_name,
         experiment.experiment_sha,
         iteration_no*100,
         {
@@ -184,7 +188,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         explainer.n_genome_params(),
         "param_size",
         experiment.config['experiment']['name'],
-        experiment.config['data']['raw_location'],
+        args.data_name,
         experiment.experiment_sha,
         iteration_no*100,
         {
@@ -200,7 +204,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
         json.dumps(list(propneat_results)),
         "propneat_prediction",
         experiment.config['experiment']['name'],
-        experiment.config['data']['raw_location'],
+        args.data_name,
         experiment.experiment_sha,
         iteration_no*100,
         {
@@ -227,7 +231,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
             json.dumps(list(propneat_retrain_results)),
             "propneat_retrain_prediction",
             experiment.config['experiment']['name'],
-            experiment.config['data']['raw_location'],
+            args.data_name,
             experiment.experiment_sha,
             iteration_no*100+my_it,
             {
@@ -240,7 +244,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
             explainer.net.retrainer['best_model_epoch'],
             "propneat_retrain_n_epochs",
             experiment.config['experiment']['name'],
-            experiment.config['data']['raw_location'],
+            args.data_name,
             experiment.experiment_sha,
             iteration_no*100+my_it,
             {
@@ -251,7 +255,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
             explainer.net.retrainer['best_model_loss'],
             "propneat_retrain_best_val_loss",
             experiment.config['experiment']['name'],
-            experiment.config['data']['raw_location'],
+            args.data_name,
             experiment.experiment_sha,
             iteration_no*100+my_it,
             {
@@ -262,7 +266,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
             explainer.net.retrainer['validate_losses'],
             "validate_losses",
             experiment.config['experiment']['name'],
-            experiment.config['data']['raw_location'],
+            args.data_name,
             experiment.experiment_sha,
             iteration_no*100+my_it,
             {

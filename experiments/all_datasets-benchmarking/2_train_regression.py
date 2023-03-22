@@ -21,6 +21,8 @@ parser.add_argument("ref_file",
                     metavar='experiment_reference_file',
                     type=str,
                     help="Path to experiment ref file")
+parser.add_argument('data_name', metavar='experiment_data_file', type=str,
+                    help="Path to experiment data")
 
 args = parser.parse_args()
 
@@ -35,7 +37,8 @@ experiment.create_logging_header("Starting {}".format(__file__), 50)
 
 # ---------------- Load data ------------------------------
 
-processed_data_location = experiment.data_folder
+base_data_location = experiment.data_folder
+processed_data_location = os.path.join(base_data_location, args.data_name)
 
 generic_wrangler = GENERIC_WRANGLER(processed_data_location)
 
@@ -53,7 +56,7 @@ preds_results = Result(
     json.dumps(list(regression_preds)),
     "linear_regression_predictions",
     experiment.config['experiment']['name'],
-    experiment.config['data']['raw_location'],
+    args.data_name,
     experiment.experiment_sha,
     0,
     {
@@ -71,7 +74,7 @@ preds_results = Result(
     json.dumps(list(regression_preds)),
     "logistic_regression_predictions",
     experiment.config['experiment']['name'],
-    experiment.config['data']['raw_location'],
+    args.data_name,
     experiment.experiment_sha,
     0,
     {

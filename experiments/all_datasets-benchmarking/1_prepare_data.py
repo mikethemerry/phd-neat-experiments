@@ -4,6 +4,7 @@ import os
 from explaneat.experimenter.experiment import GenericExperiment
 
 from explaneat.data.wranglers import UCI_WRANGLER
+from explaneat.data.wranglers import PMLB_WRANGLER
 from explaneat.data.wranglers import GENERIC_WRANGLER
 
 
@@ -16,8 +17,8 @@ parser.add_argument("ref_file",
                     metavar='experiment_reference_file',
                     type=str,
                     help="Path to experiment ref file")
-parser.add_argument('data_file', metavar='experiment_data_file', type=str,
-                    help="Path to experiment data file")
+parser.add_argument('data_name', metavar='experiment_data_file', type=str,
+                    help="Path to experiment data")
 
 
 args = parser.parse_args()
@@ -28,7 +29,6 @@ experiment = GenericExperiment(
     ref_file=args.ref_file)
 logger = experiment.logger
 
-
 experiment.create_logging_header("Starting {}".format(__file__), 50)
 
 # ------ Prep the folders ------
@@ -36,7 +36,9 @@ experiment.create_logging_header("Starting {}".format(__file__), 50)
 experiment.create_logging_header("DATA FOLDERS")
 
 # check if folder exists
-processed_data_location = experiment.data_folder
+base_data_location = experiment.data_folder
+processed_data_location = os.path.join(base_data_location, args.data_name)
+
 if not os.path.exists(processed_data_location):
     logger.info("Processed data doesn't exist at {}".format(
         processed_data_location))
@@ -57,9 +59,7 @@ experiment.create_logging_header("DATA FOLDERS ENDED")
 
 experiment.create_logging_header("DATA PREPARATION")
 
-data_wrangler = UCI_WRANGLER(
-    experiment.config['data']['raw_location'],
-    experiment.config['data']['raw_data_meta'])
+data_wrangler = PMLB_WRANGLER(args.data_name)
 
 data_wrangler.create_train_test_split(experiment.config["train_test_ratio"],
                                       experiment.config["random_seed"])
@@ -72,20 +72,20 @@ logger.info("Validating can access data")
 generic_wrangler = GENERIC_WRANGLER(processed_data_location)
 
 if ((data_wrangler.data_shapes == generic_wrangler.data_shapes) and
-            (generic_wrangler.data_shapes[0][1] ==
-             len(data_wrangler.meta['x_columns'])) and
+    (generic_wrangler.data_shapes[0][1] ==
+             len(data_wrangler.x_columns)) and
             (generic_wrangler.data_shapes[1][1] ==
-             len(data_wrangler.meta['x_columns']))
-        ):
+             len(data_wrangler.x_columns))
+    ):
 
     logger.info("Data has passed shape checks")
 
-    logger.info("UCI wrangler {}".format(data_wrangler.data_shapes))
+    logger.info("PMLB wrangler {}".format(data_wrangler.data_shapes))
     logger.info("generic wrangler {}".format(generic_wrangler.data_shapes))
 
 else:
     logger.error("Data has not been saved correctly")
-    logger.error("UCI wrangler {}".format(data_wrangler.data_shapes))
+    logger.error("PMLB wrangler {}".format(data_wrangler.data_shapes))
     logger.error("generic wrangler {}".format(generic_wrangler.data_shapes))
     raise Exception("Data has not been saved correctly")
 
