@@ -73,14 +73,14 @@
         "neural_network": {
             "batch_size": 243,
             "learning_rate": 0.001,
-            "num_epochs": 250
+            "num_epochs": 10000
         },
         "propneat": {
-            "n_iterations": 10,
-            "population_size": 150,
+            "n_iterations": 5,
+            "population_size": 250,
             "epochs_per_generation": 15,
             "max_n_generations": 150,
-            "base_config_path": "./config-bchard"
+            "base_config_path": "./config-generic"
         },
         "propneat_retrain": {
             "n_epochs": 6000,

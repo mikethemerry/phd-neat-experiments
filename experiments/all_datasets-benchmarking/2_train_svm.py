@@ -63,9 +63,10 @@ random_svm = RandomizedSearchCV(estimator=svm_model,
 random_svm.fit(X_train, y_train)
 svm_preds = random_svm.predict(X_test)
 
+recast_preds = [float(p) for p in svm_preds]
 
 preds_results = Result(
-    json.dumps(list(svm_preds)),
+    json.dumps(list(recast_preds)),
     "svm_predictions",
     experiment.config['experiment']['name'],
     args.data_name,

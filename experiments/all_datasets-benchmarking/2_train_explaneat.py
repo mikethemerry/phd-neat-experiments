@@ -3,6 +3,7 @@ import os
 import datetime
 import random
 import json
+import tempfile
 
 from explaneat.experimenter.experiment import GenericExperiment
 from explaneat.data.wranglers import GENERIC_WRANGLER
@@ -72,13 +73,30 @@ y_test_tt = torch.tensor(y_test)
 
 # ------------------- Set up environment ------------------------------
 
-# epoch_points = [10]
 config_path = experiment.config['model']['propneat']['base_config_path']
+
+# epoch_points = [10]
+# Manually create temporary file in the same directory as the original file
+temp_file_path = os.path.join(os.path.dirname(config_path), 'temp_config.ini')
+with open(temp_file_path, 'w') as temp_file, open(config_path, 'r') as original_file:
+    # Copy contents of original file to temporary file
+    temp_file.write(original_file.read())
+
+    # Add two lines to the end of the temporary file
+    temp_file.write('\nnum_inputs = {}'.format(X_test_tt.shape[1]))
+
+# Call the runFile function with the temporary file
 base_config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                           neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                          config_path)
+                          temp_file_path)
+
+# Delete the temporary file
+os.remove(temp_file_path)
+
 
 base_config.pop_size = experiment.config['model']['propneat']['population_size']
+# base_config.genome_config.num_inputs = X_test_tt.shape[1]
+# base_config.num_inputs = X_test_tt.shape[1]
 # ------------------- Define model ------------------------------
 
 

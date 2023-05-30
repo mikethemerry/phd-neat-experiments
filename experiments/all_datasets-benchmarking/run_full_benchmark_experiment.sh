@@ -65,7 +65,7 @@ then
 fi
 
 while IFS= read -r DATA; do
-
+   echo $DATA
    if (($STEP <= 1));
    then
       ipython 1_prepare_data.py $CONFIG $SHAFILE "$DATA"

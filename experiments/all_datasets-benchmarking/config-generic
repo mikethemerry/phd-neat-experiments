@@ -7,6 +7,19 @@ pop_size              = 50
 reset_on_extinction   = False
 
 
+[DefaultSpeciesSet]
+compatibility_threshold = 3.0
+
+[DefaultStagnation]
+species_fitness_func = max
+max_stagnation       = 20
+species_elitism      = 2
+
+[DefaultReproduction]
+elitism            = 2
+survival_threshold = 0.2
+
+
 [DefaultGenome]
 # node activation options
 activation_default      = relu
@@ -32,8 +45,8 @@ compatibility_disjoint_coefficient = 1.0
 compatibility_weight_coefficient   = 1.5
 
 # connection add/remove rates
-conn_add_prob           = 0.6
-conn_delete_prob        = 0.6
+conn_add_prob           = 0.7
+conn_delete_prob        = 0.65
 
 # connection enable options
 enabled_default         = True
@@ -43,13 +56,9 @@ feed_forward            = True
 initial_connection      = full
 
 # node add/remove rates
-node_add_prob           = 0.5
-node_delete_prob        = 0.5
+node_add_prob           = 0.6
+node_delete_prob        = 0.55
 
-# network parameters
-num_hidden              = 0
-num_inputs              = 14 
-num_outputs             = 1
 
 # node response options
 response_init_mean      = 1.0
@@ -69,15 +78,7 @@ weight_mutate_power     = 0.5
 weight_mutate_rate      = 0.00
 weight_replace_rate     = 0.005
 
-[DefaultSpeciesSet]
-compatibility_threshold = 3.0
 
-[DefaultStagnation]
-species_fitness_func = max
-max_stagnation       = 20
-species_elitism      = 2
-
-[DefaultReproduction]
-elitism            = 2
-survival_threshold = 0.2
-
+# network parameters
+num_hidden              = 0
+num_outputs             = 1
