@@ -19,7 +19,10 @@ sha_file <- "./sha_file.json"
 sha_doc <- rjson::fromJSON(file=sha_file)
 config_doc <- rjson::fromJSON(file="./all_data_benchmarking_experiment_config.json")
 experiment_sha <- sha_doc$sha
-dataset_name <- "GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1"
+experiment_sha <- "3d382b80"
+# dataset_name <- "GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1"
+
+# dataset_name <- "breast_cancer_wisconsin"
 codename <- config_doc$experiment$codename
 ```
 
@@ -31,15 +34,18 @@ experiment_sha
 # Data ingest
 
 ```{r}
-results <- read_csv("./../../data/experiments/tests/data/resultsDatabase.csv")
+# results <- read_csv("./../../data/experiments/tests/data/resultsDatabase.csv")
 # results <- read_csv("./../../data/experiments/tests/data/resultsDatabase_mlrig.csv")
+results <- read_csv("./../../../mount_remote_phd/processed/resultsDatabase.csv")
 
 # results %>% filter(experimentSha == experiment_sha) %>%
 #   select(-value) %>%View
 
 ```
 ```{r}
-y_test <- read_csv(str_glue("./../../data/processed/",codename,"/",experiment_sha, "/",dataset_name,"/y_test.csv"))
+dataset_name <- "tic_tac_toe"
+
+y_test <- read_csv(str_glue("./../../../mount_remote_phd/processed//",codename,"/",experiment_sha, "/",dataset_name,"/y_test.csv"))
 ```
 ```{r}
 y_test %>%
@@ -86,10 +92,10 @@ predictions <- predictions %>%
   mutate(
       sensitivities = list(roc$sensitivities),
      specificities = list(roc$specificities))
-
-predictions %>%
-  select(starts_with("s")) %>%
-  glimpse()
+# 
+# predictions %>%
+#   select(starts_with("s")) %>%
+#   glimpse()
 ```
 
 
@@ -162,7 +168,7 @@ predictions %>%
   select(measurementType,
          iteration,
          auc) %>%
-  view("Scores")
+  view("Scores_mlrig")
 ```
 
 ```{r}
