@@ -1,0 +1,178 @@
+---
+title: "Comparison analysis"
+author: "MIKE MERRY"
+date: '2022-09-25'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+  
+knitr::opts_chunk$set(echo = TRUE)
+require("tidyverse")
+library(pROC)
+experiment_sha <- "24c00ce9" # 24088379
+experiment_sha <- "b53e57d1" 
+experiment_sha <- "24088379"
+experiment_sha <- "b4c86de1"
+sha_file <- "./sha_file.json"
+sha_doc <- rjson::fromJSON(file=sha_file)
+experiment_sha <- sha_doc$sha
+```
+
+```{r}
+experiment_sha
+```
+
+
+# Data ingest
+
+```{r}
+results <- read_csv("./../../data/experiments/tests/data/resultsDatabase.csv")
+
+y_test <- read_csv(str_glue("./../../data/processed/bchard_benchmark/",experiment_sha, "/y_test.csv"))
+```
+```{r}
+y_test %>%
+  glimpse()
+```
+
+
+```{r}
+results %>%
+  glimpse()
+```
+
+```{r}
+predictions <- results %>%
+  filter(str_detect(measurementType, "predict"),
+         experimentSha == experiment_sha)
+predictions$value <- map(predictions$value, jsonlite::fromJSON)
+predictions %>% 
+  glimpse
+```
+
+```{r}
+compute_auc <- function(preds){
+    my_tib<-tibble(y_test, preds)
+    my_roc <- roc(my_tib, y, preds)
+    return(as.numeric(my_roc$auc[[1]]))
+}
+compute_roc <- function(preds){
+    my_tib<-tibble(y_test, preds)
+    return(roc(my_tib, y, preds))
+}
+```
+
+
+
+```{r}
+predictions$auc <- map(predictions$value, compute_auc)
+predictions$roc <- map(predictions$value, compute_roc)
+
+predictions <- predictions %>% 
+  rowwise() %>%
+  mutate(
+      sensitivities = list(roc$sensitivities),
+     specificities = list(roc$specificities))
+
+predictions %>%
+  select(starts_with("s")) %>%
+  glimpse()
+```
+
+
+```{r}
+
+long_preds <- predictions %>%
+  unnest_longer(c("sensitivities","specificities")) %>%
+  group_by(measurementType,iteration,sensitivities) %>%
+  summarise(specificities = max(specificities))
+```
+
+
+
+```{r}
+long_preds %>%
+  filter(measurementType != "propneat_retrain_prediction")%>%
+  ggplot(aes(1-specificities, 
+             sensitivities, 
+             group=interaction(measurementType,iteration),
+             color=measurementType)) +
+  geom_line() +
+  geom_segment(aes(x=0, y=0, xend=1, yend=1), colour="black")
+  
+```
+
+```{r}
+long_preds %>%
+  filter( grepl("propne",measurementType) ) %>%
+  ggplot(aes(1-specificities, 
+             sensitivities, 
+             group=interaction(measurementType,iteration),
+             color=measurementType)) +
+  geom_line(alpha=1) +
+  geom_segment(aes(x=0, y=0, xend=1, yend=1), colour="black")
+  
+```
+
+```{r}
+long_preds %>%
+  filter( grepl("propne",measurementType) ) %>%
+  mutate(opacity = if_else(measurementType == "propneat_prediction", 1, 1))%>%
+  ggplot(aes(1-specificities, 
+             sensitivities, 
+             group=interaction(measurementType,iteration),
+             color=measurementType,
+             alpha=opacity)) +
+  geom_line() +
+  facet_wrap(iteration%/%100~.) +
+  geom_segment(aes(x=0, y=0, xend=1, yend=1), colour="black")
+  
+```
+```{r}
+results %>%
+  view("results")
+```
+
+
+```{r}
+predictions %>% 
+  select(-value,
+         -experimentName,
+         -dataset,
+         -params)
+```
+
+
+```{r}
+predictions %>%
+  select(measurementType,
+         iteration,
+         auc) %>%
+  view("Scores")
+```
+
+```{r}
+predictions %>%
+  select(measurementType,
+         value,
+         auc) %>%
+  mutate(auc = as.numeric(auc)) %>%
+  group_by(measurementType) %>%
+  summarise(mean_auc = mean(auc))
+```
+
+
+```{r}
+results %>% glimpse
+```
+
+```{r}
+results %>% 
+  filter(measurementType == "skippiness") %>%
+  group_by(experimentSha) %>%
+  summarise(avg_skippy = mean(as.numeric(value))) 
+```
+
+
+

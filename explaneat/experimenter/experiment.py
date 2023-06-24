@@ -1,5 +1,7 @@
 from jsonschema import validate
 from explaneat.experimenter.schemas.experiment import experiment as EXPERIMENT_SCHEMA
+from explaneat.experimenter.results import Result, ResultsDatabase
+
 from pathlib import Path
 import json
 import logging
@@ -53,14 +55,20 @@ class GenericExperiment(object):
         "info.log": logging.INFO
     }
 
-    def __init__(self, config, confirm_path_creation=True, experiment_sha=None, logging_level=logging.INFO):
+    def __init__(self, config, confirm_path_creation=True, experiment_sha=None, logging_level=logging.INFO, ref_file=None):
         self.create_stream_logging(logging_level)
 
         self.config_files = {}
 
-        self.experiment_sha = experiment_sha
-        self.experiment_start_time = datetime.datetime.now().strftime("%y%m%dT%H%M%S")
-        self.experiment_start_time_with_ms = datetime.datetime.now().strftime("%y%m%dT%H%M%S.%f")
+        if ref_file is not None:
+            existing_refs = self.get_existing_run_from_file(ref_file)
+            self.experiment_sha = existing_refs['sha']
+            self.experiment_start_time = existing_refs['start_time']
+            self.experiment_start_time_with_ms = existing_refs['start_time_ms']
+        else:
+            self.experiment_sha = experiment_sha
+            self.experiment_start_time = datetime.datetime.now().strftime("%y%m%dT%H%M%S")
+            self.experiment_start_time_with_ms = datetime.datetime.now().strftime("%y%m%dT%H%M%S.%f")
 
         self._requested_config = config
 
@@ -199,6 +207,14 @@ class GenericExperiment(object):
         # add ch to logger
         self.logger.addHandler(ch)
 
+    def create_logging_header(self, text, width=25):
+
+        self.logger.info('#'*width)
+        self.logger.info('-'*width)
+        self.logger.info(text.center(width))
+        self.logger.info('-'*width)
+        self.logger.info('#'*width)
+
     def create_file_logging(self):
         self.logger.info("Creating file logging")
         for file, level in self.file_loggers.items():
@@ -259,6 +275,21 @@ class GenericExperiment(object):
             "hostname": socket.gethostname()
         }
 
+    def write_run_to_file(self, file):
+        doc_to_write = {
+            "sha": self.experiment_sha,
+            "start_time": self.experiment_start_time,
+            "start_time_ms": self.experiment_start_time_with_ms
+        }
+        with open(file, "w") as fp:
+            json.dump(doc_to_write, fp)
+
+    def get_existing_run_from_file(self, file):
+
+        with open(file, "r") as fp:
+            doc = json.load(fp)
+        return doc
+
     @ property
     def experiment_sha(self):
         """Experiment SHA is used as random seed for all experiments - it is
@@ -297,3 +328,21 @@ class GenericExperiment(object):
     @ config.getter
     def config(self):
         return self._config
+
+    @ property
+    def data_folder(self):
+        my_path = os.path.join(self._config['data']['processed_location'],
+                               self._config['experiment']['codename'],
+                               self.experiment_sha)
+        return my_path
+
+    @ property
+    def results_database(self):
+        if not hasattr(self, "_results_database"):
+            self._results_database = ResultsDatabase(
+                self.config['results']['database'])
+        return self._results_database
+
+    @ property
+    def random_seed(self):
+        return self.config['random_seed']

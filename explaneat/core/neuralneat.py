@@ -7,6 +7,10 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
+
+from sklearn.model_selection import train_test_split
+
 
 import pprint
 
@@ -19,7 +23,15 @@ LAYER_TYPE_OUTPUT = "OUTPUT"
 
 LAYER_ACTIVATION_RELU = "ReLU"
 LAYER_ACTIVATION_SIGMOID = "Sigmoid"
+LAYER_ACTIVATION_LEAKYRELU = "Leaky ReLU"
 LAYER_ACTIVATION_INPUT = "Input"
+
+
+LAYER_ACTIVATION_FUNCTIONS = {
+    "ReLU": torch.relu,
+    "Sigmoid": torch.sigmoid,
+    "Leaky ReLU": nn.LeakyReLU
+}
 
 
 class NeuralNeat(nn.Module):
@@ -86,6 +98,8 @@ class NeuralNeat(nn.Module):
         self.criterion = criterion
         self.optimiser = optimiser
         self.optimizer = self.optimiser
+
+        self.retrainer = {}
 
     def _create_node_map(self, node):
         pass
@@ -243,6 +257,16 @@ class NeuralNeat(nn.Module):
 
         return layers, node_tracker
 
+    def reinitialse_network_weights(self):
+        for w_id, w in self.weights.items():
+            if w_id > 0:
+                w = nn.init.kaiming_normal_(w)
+        for b_id, b in self.biases.items():
+            try:
+                b = nn.init.kaiming_normal_(b)
+            except ValueError:
+                b = nn.init.normal_(b)
+
     def update_genome_weights(self):
         for layer_id, layer in self.layers.items():
             for genome_location, weight_location in layer['input_map'].items():
@@ -274,6 +298,16 @@ class NeuralNeat(nn.Module):
             #                 # layer['input_weights'][in_weight_location][out_weight_location] = connection_weight
             #                 self.genome.connections[(node_id, node_output_id)].weight = self.weights[layer_id][in_weight_location][out_weight_location]
                 # layer_offset += len(input_layer['nodes'])
+
+    def parameters_to_object(self):
+        return {
+            "weights": self.weights,
+            "biases": self.biases
+        }
+
+    def set_parameters_from_object(self, params):
+        self.weights = params['weights']
+        self.biases = params['biases']
 
     @staticmethod
     def _tt(mat):
@@ -326,8 +360,12 @@ class NeuralNeat(nn.Module):
             # print(self.biases[layer_id])
 
             try:
-                self._outputs[layer_id] = torch.sigmoid(torch.matmul(
-                    layer_input, self.weights[layer_id]) + self.biases[layer_id])
+                if layer_type == LAYER_TYPE_CONNECTED:
+                    self._outputs[layer_id] = torch.sigmoid(torch.matmul(
+                        layer_input, self.weights[layer_id]) + self.biases[layer_id])
+                else:
+                    self._outputs[layer_id] = torch.sigmoid(torch.matmul(
+                        layer_input, self.weights[layer_id]) + self.biases[layer_id])
             except Exception as e:
                 print("HAD A big error with these details")
                 print(e)
@@ -446,6 +484,11 @@ class NeuralNeat(nn.Module):
                 return False
         return True
 
+    def shapes(self):
+        return {
+            ix: self.layers[ix]['weights_shape'] for ix in range(len(self.layers))
+        }
+
     def help_me_debug(self):
         print("=============================")
         print("DEBUGGING MY NETWORK!")
@@ -476,7 +519,70 @@ class NeuralNeat(nn.Module):
             # print("Output layers {}: ".format(layer.output_layers))
         print("---===---===---===")
         print("---===---===---===")
+        print("---=== SHAPES ===---===")
+        print(self.shapes())
         print("---===---===---===")
+
+    def retrain(self, xs, ys,
+                n_epochs=50,
+                report_every_n=50,
+                choose_best=False,
+                validate_split=0.3,
+                random_seed=None):
+
+        if not type(xs) is torch.Tensor:
+            xs = torch.tensor(xs, dtype=torch.float64)
+        if not type(ys) is torch.Tensor:
+            ys = torch.tensor(ys, dtype=torch.float64)
+
+        optimizer = self.optimiser(self.parameters(), lr=1.5)
+
+        if choose_best:
+
+            if random_seed is None:
+                raise Exception("Must explicitly choose random seed")
+
+            xs, xs_validate, ys, ys_validate = train_test_split(
+                xs, ys, test_size=validate_split, random_state=random_seed)
+
+            validate_losses = []
+            best_validation_loss = 99999
+            best_model_epoch = 0
+            best_model = self.parameters_to_object()
+
+        optimizer.zero_grad()
+        for i in range(n_epochs):
+
+            preds = self.forward(xs)
+            loss = F.mse_loss(preds, ys).sqrt()
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+            if choose_best:
+                with torch.no_grad():
+                    val_preds = self.forward(xs_validate)
+                    validate_loss = F.mse_loss(val_preds, ys_validate).sqrt()
+                    validate_losses.append(validate_loss)
+                    if validate_loss <= best_validation_loss:
+                        best_model = self.parameters_to_object()
+                        best_model_epoch = i
+                        best_validation_loss = validate_loss
+                    self.retrainer = {
+                        "validate_losses": validate_losses,
+                        "best_model": best_model,
+                        "best_model_loss": best_validation_loss,
+                        "best_model_epoch": best_model_epoch
+                    }
+            if i % report_every_n == 0:
+                report_string = "{key} : {value}"
+                print("--------- Model reporting --------")
+                print(report_string.format(key="Epoch", value=i))
+                print(report_string.format(key="Loss", value=loss))
+                if choose_best:
+                    for k in ["best_model_loss", "best_model_epoch"]:
+                        print(report_string.format(
+                            key=k, value=self.retrainer[k]))
 
 
 class NodeMapping(object):
@@ -632,7 +738,7 @@ class NodeMapping(object):
 
             # LAYER TYPES!!
             layer['layer_type'] = LAYER_TYPE_CONNECTED
-            layer['layer_activation'] = LAYER_ACTIVATION_RELU
+            layer['layer_activation'] = LAYER_ACTIVATION_LEAKYRELU
             # If I have the output node, I'm an output
             if 0 in layer['nodes']:
                 layer['is_output_layer'] = True

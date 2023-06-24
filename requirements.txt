@@ -28,7 +28,7 @@ decorator @ file:///opt/conda/conda-bld/decorator_1643638310831/work
 defusedxml @ file:///tmp/build/80754af9/defusedxml_1615228127516/work
 entrypoints @ file:///opt/concourse/worker/volumes/live/84dd3e87-c86b-405f-5113-9d1bdbfd10b9/volume/entrypoints_1649926452122/work
 executing @ file:///opt/conda/conda-bld/executing_1646925071911/work
--e git+https://mikethemerry@github.com/mikethemerry/phd-neat-experiments.git@b13f5d46069a5cb0915d5fe6c180f138e053b28e#egg=explaneat
+-e git+https://mikethemerry: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@github.com/mikethemerry/phd-neat-experiments@22756c27f864cb027970be369138ddd80e7de0c2#egg=explaneat
 fastjsonschema @ file:///tmp/build/80754af9/python-fastjsonschema_1620414857593/work/dist
 future==0.18.2
 gitdb==4.0.9
@@ -74,6 +74,7 @@ parso @ file:///opt/conda/conda-bld/parso_1641458642106/work
 pexpect @ file:///tmp/build/80754af9/pexpect_1605563209008/work
 pickleshare @ file:///tmp/build/80754af9/pickleshare_1606932040724/work
 Pillow==7.1.2
+pmlb==1.0.1.post3
 prometheus-client @ file:///opt/conda/conda-bld/prometheus_client_1643788673601/work
 prompt-toolkit @ file:///tmp/build/80754af9/prompt-toolkit_1633440160888/work
 psutil @ file:///opt/concourse/worker/volumes/live/0673cd4b-30c1-4470-7490-d8955610f5d5/volume/psutil_1612298002202/work
