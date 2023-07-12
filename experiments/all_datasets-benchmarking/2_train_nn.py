@@ -244,7 +244,7 @@ class EarlyStopping():
     # nn_model.parameters(), lr=model_config['learning_rate'])
 
 model = DenseNet(generic_wrangler.input_size,
-                 [32, 64, 64, 32],
+                 [256, 512, 512, 256],
                  generic_wrangler.output_size).to(device)
 
 # ------------------- train model ------------------------------
@@ -271,6 +271,10 @@ model.train(X_train, y_train, model_config['num_epochs'], (X_val, y_val))
 #     if (epoch+1) % 50 == 0:
 #         print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
 #               .format(epoch+1, model_config['num_epochs'], i+1, total_step, train_loss.item()))
+
+# ------------------- turn model to eval mode -------------------
+
+model.eval()
 
 # ------------------- get predictions ------------------------------
 
