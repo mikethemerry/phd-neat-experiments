@@ -137,11 +137,13 @@ class DenseNet(nn.Module):
         x = torch.sigmoid(x)
         return x
 
-    def train(self, x, y, epochs, validation_data, criterion=nn.BCELoss(), patience=50):
+    def model_train(self, x, y, epochs, validation_data, criterion=nn.BCELoss(), patience=50):
         optimizer = optim.SGD(self.parameters(), lr=0.01)
         validation_loss_min = float('inf')
         stop_epoch = 0
         for epoch in range(epochs):
+            if epoch % 100 == 0:
+                print("Training {}".format(epoch))
             optimizer.zero_grad()
             outputs = self(x)
             loss = criterion(outputs, y)
@@ -249,7 +251,7 @@ model = DenseNet(generic_wrangler.input_size,
 
 # ------------------- train model ------------------------------
 
-model.train(X_train, y_train, model_config['num_epochs'], (X_val, y_val))
+model.model_train(X_train, y_train, model_config['num_epochs'], (X_val, y_val))
 
 # for epoch in range(model_config['num_epochs']):
 
