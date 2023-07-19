@@ -73,7 +73,8 @@
         "neural_network": {
             "batch_size": 243,
             "learning_rate": 0.001,
-            "num_epochs": 10000
+            "num_epochs": 10000,
+            "n_iterations": 10
         },
         "propneat": {
             "n_iterations": 5,

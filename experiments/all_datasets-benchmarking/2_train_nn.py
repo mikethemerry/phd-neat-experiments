@@ -235,67 +235,45 @@ class EarlyStopping():
                 self.counter = 0
                 self.reset_counter = 0
 
+# Iterations loop
 
-# ------------------- instantiate model ------------------------------
 
-# nn_model = NeuralNet(generic_wrangler.input_size,
-                #  generic_wrangler.output_size).to(device)
+for iteration_no in range(experiment.config['model']['neural_network']["n_iterations"]):
+    my_random_seed = experiment.config["random_seed"] + iteration_no
+    random.seed(my_random_seed)
+    # ------------------- instantiate model ------------------------------
 
-# criterion = nn.BCEWithLogitsLoss().to(device)
-# optimizer = torch.optim.Adam(
-    # nn_model.parameters(), lr=model_config['learning_rate'])
+    model = DenseNet(generic_wrangler.input_size,
+                     [256, 512, 512, 256],
+                     generic_wrangler.output_size).to(device)
 
-model = DenseNet(generic_wrangler.input_size,
-                 [256, 512, 512, 256],
-                 generic_wrangler.output_size).to(device)
+    # ------------------- train model ------------------------------
 
-# ------------------- train model ------------------------------
+    model.model_train(X_train, y_train,
+                      model_config['num_epochs'], (X_val, y_val))
 
-model.model_train(X_train, y_train, model_config['num_epochs'], (X_val, y_val))
+    # ------------------- turn model to eval mode -------------------
 
-# for epoch in range(model_config['num_epochs']):
+    model.eval()
 
-#     # for i, (xsnn, ysnn) in enumerate(train_loader):
-#     #     # Move tensors to the configured device
-#     #     xsnn = xsnn.float().to(device)
-#     #     ysnn = ysnn.view(-1, 1).float().to(device)
-#     xsnn = torch.tensor(X_train).to(device)
-#     ysnn = torch.tensor(y_train).to(device)
+    # ------------------- get predictions ------------------------------
 
-#     # Forward pass
-#     outputs = nn_model(xsnn)
-#     train_loss = criterion(outputs, ysnn)
+    nn_preds = torch.sigmoid(model.forward(torch.from_numpy(
+        X_test.to_numpy()).float().to(device)).to(device)).detach().numpy()
 
-#     # Backward and optimize
-#     optimizer.zero_grad()
-#     train_loss.backward()
-#     optimizer.step()
-#     if (epoch+1) % 50 == 0:
-#         print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-#               .format(epoch+1, model_config['num_epochs'], i+1, total_step, train_loss.item()))
+    nn_preds = [float(pred[0]) for pred in nn_preds]
 
-# ------------------- turn model to eval mode -------------------
-
-model.eval()
-
-# ------------------- get predictions ------------------------------
-
-nn_preds = torch.sigmoid(model.forward(torch.from_numpy(
-    X_test.to_numpy()).float().to(device)).to(device)).detach().numpy()
-
-nn_preds = [float(pred[0]) for pred in nn_preds]
-
-preds_results = Result(
-    json.dumps(list(nn_preds)),
-    "nn_prediction",
-    experiment.config['experiment']['name'],
-    args.data_name,
-    experiment.experiment_sha,
-    0,
-    {
-        "iteration": 0
-    }
-)
-experiment.results_database.add_result(preds_results)
+    preds_results = Result(
+        json.dumps(list(nn_preds)),
+        "nn_prediction",
+        experiment.config['experiment']['name'],
+        args.data_name,
+        experiment.experiment_sha,
+        iteration_no,
+        {
+            "iteration": iteration_no
+        }
+    )
+    experiment.results_database.add_result(preds_results)
 
 experiment.create_logging_header("Ending {}".format(__file__), 50)
