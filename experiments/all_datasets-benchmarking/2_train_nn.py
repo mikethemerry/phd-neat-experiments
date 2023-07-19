@@ -137,11 +137,13 @@ class DenseNet(nn.Module):
         x = torch.sigmoid(x)
         return x
 
-    def train(self, x, y, epochs, validation_data, criterion=nn.BCELoss(), patience=50):
+    def model_train(self, x, y, epochs, validation_data, criterion=nn.BCELoss(), patience=50):
         optimizer = optim.SGD(self.parameters(), lr=0.01)
         validation_loss_min = float('inf')
         stop_epoch = 0
         for epoch in range(epochs):
+            if epoch % 100 == 0:
+                print("Training {}".format(epoch))
             optimizer.zero_grad()
             outputs = self(x)
             loss = criterion(outputs, y)
@@ -244,12 +246,12 @@ class EarlyStopping():
     # nn_model.parameters(), lr=model_config['learning_rate'])
 
 model = DenseNet(generic_wrangler.input_size,
-                 [32, 64, 64, 32],
+                 [256, 512, 512, 256],
                  generic_wrangler.output_size).to(device)
 
 # ------------------- train model ------------------------------
 
-model.train(X_train, y_train, model_config['num_epochs'], (X_val, y_val))
+model.model_train(X_train, y_train, model_config['num_epochs'], (X_val, y_val))
 
 # for epoch in range(model_config['num_epochs']):
 
@@ -271,6 +273,10 @@ model.train(X_train, y_train, model_config['num_epochs'], (X_val, y_val))
 #     if (epoch+1) % 50 == 0:
 #         print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
 #               .format(epoch+1, model_config['num_epochs'], i+1, total_step, train_loss.item()))
+
+# ------------------- turn model to eval mode -------------------
+
+model.eval()
 
 # ------------------- get predictions ------------------------------
 
