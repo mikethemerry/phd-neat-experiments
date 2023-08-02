@@ -27,7 +27,18 @@ experiment_sha <- "ba05ec6c"
 
 # dataset_name <- "breast_cancer_wisconsin"
 codename <- config_doc$experiment$codename
+
 ```
+
+```{r}
+
+datasets_metadata_file <- "./datasets_metadata.json"
+datasets_metadata <- jsonlite::fromJSON(datasets_metadata_file)
+
+datasets_metadata %>%
+  view
+```
+
 
 ```{r}
 compute_auc <- function(preds){
@@ -118,7 +129,8 @@ for(dataset_name in datasets){
 }
 ```
 ```{r}
-all_results <- read.csv(aucs_file)
+all_results <- read.csv(aucs_file) %>%
+  filter(dataset != "agaricus_lepiota")
 ```
 
 ```{r}
@@ -140,15 +152,30 @@ grouped <- all_results %>% group_by(
 
 grouped <- grouped %>%
   group_by(dataset) %>%
-  mutate(rank = rank(-max_auc))
+  mutate(rank = rank(-max_auc),
+         rank_mean = rank(-mean_auc))
 
 grouped %>%
   
   arrange(dataset, -max_auc) %>%
-  # write_csv(., "./../../data/processed/experiment_aucs.csv")
-# %>%
   view("summary")
 ```
+
+```{r}
+grouped %>% 
+  select(measurementType, dataset,max_auc) %>%
+  mutate(max_auc = -max_auc) %>%
+  pivot_wider(names_from = measurementType, values_from = max_auc) %>%
+  write_csv(., "./../../data/processed/experiment_aucs.csv")
+```
+
+
+
+```{r}
+grouped <- grouped %>%
+  left_join(datasets_metadata, join_by(dataset==name))
+```
+
 
 
 ```{r}
@@ -164,7 +191,7 @@ library(DescTools)
 
 boxplot(rank ~ measurementType, data=grouped)
 
-nemenyi_result <- NemenyiTest(rank ~ measurementType, data=grouped, method = "nemenyi")
+  nemenyi_result <- NemenyiTest(rank ~ measurementType, data=grouped, method = "nemenyi")
 
 nemenyi_result
 ```
@@ -174,6 +201,28 @@ grouped %>%
   group_by(measurementType) %>%
   summarise(mean_rank = mean(rank))
 ```
+
+```{r}
+grouped %>%
+  mutate(log_length = round(log(length))) %>%
+  group_by(log_length, measurementType) %>%
+  summarise(mean_rank = mean(rank)) %>%
+  ggplot(aes(log_length, mean_rank, group=measurementType, color=measurementType)) +
+  geom_line() +
+  geom_point()
+```
+
+```{r}
+grouped %>%
+  mutate(round_width = round(width/5)*5) %>%
+  group_by(round_width, measurementType) %>%
+  summarise(mean_rank = mean(rank)) %>%
+  ggplot(aes(round_width, mean_rank, group=measurementType, color=measurementType)) +
+  geom_line() +
+  geom_point() +
+  xlim(0, 100)
+```
+
 
 Patricia Riddle to Everyone (27 Jul 2023, 10:34)
 https://github.com/Didayolo/ranky
