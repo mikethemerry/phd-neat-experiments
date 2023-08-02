@@ -1,0 +1,236 @@
+---
+title: "Comparison analysis"
+author: "MIKE MERRY"
+date: '2022-09-25'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+  
+knitr::opts_chunk$set(echo = TRUE)
+require("tidyverse")
+library(pROC)
+# experiment_sha <- "24c00ce9" # 24088379
+# experiment_sha <- "b53e57d1" 
+# experiment_sha <- "24088379"
+# experiment_sha <- "b4c86de1"
+# experiment_sha <- "4bcfe941"
+
+sha_file <- "./sha_file.json"
+sha_doc <- rjson::fromJSON(file=sha_file)
+config_doc <- rjson::fromJSON(file="./all_data_benchmarking_experiment_config.json")
+experiment_sha <- sha_doc$sha
+experiment_sha <- "3d382b80"
+experiment_sha <- "1dd408e3"
+experiment_sha <- "ba05ec6c"
+# dataset_name <- "GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1"
+
+# dataset_name <- "breast_cancer_wisconsin"
+codename <- config_doc$experiment$codename
+
+```
+
+```{r}
+
+datasets_metadata_file <- "./datasets_metadata.json"
+datasets_metadata <- jsonlite::fromJSON(datasets_metadata_file)
+
+datasets_metadata %>%
+  view
+```
+
+
+```{r}
+compute_auc <- function(preds){
+    my_tib<-tibble(y_test, preds)
+    my_roc <- roc(my_tib, y, preds)
+    return(as.numeric(my_roc$auc[[1]]))
+}
+compute_roc <- function(preds){
+    my_tib<-tibble(y_test, preds)
+    return(roc(my_tib, y, preds))
+}
+```
+
+
+```{r}
+experiment_sha
+```
+
+
+# Data ingest
+
+```{r}
+# results <- read_csv("./../../data/experiments/tests/data/resultsDatabase.csv")
+# results <- read_csv("./../../data/experiments/tests/data/resultsDatabase_mlrig.csv")
+results <- read_csv("./../../../mount_remote_phd/processed/resultsDatabase.csv") %>%
+  rename("id" = "_id")
+
+# results %>% filter(experimentSha == experiment_sha) %>%
+#   select(-value) %>%View
+
+```
+
+```{r}
+datasets <- unique(results %>%
+                     filter(
+                     experimentSha == experiment_sha) %>%
+                     .$dataset)
+datasets
+```
+
+
+```{r, echo = FALSE, results = 'hide', message = FALSE}
+
+for(dataset_name in datasets){
+  
+  
+  y_test <- read_csv(str_glue("./../../../mount_remote_phd/processed//",codename,"/",experiment_sha, "/",dataset_name,"/y_test.csv"))
+  
+  predictions <- results %>%
+    filter(str_detect(measurementType, "predict"),
+           experimentSha == experiment_sha,
+           dataset==dataset_name)
+  predictions$value <- map(predictions$value, jsonlite::fromJSON)
+  
+  predictions$auc <-map(predictions$value, compute_auc)
+  predictions$roc <- map(predictions$value, compute_roc)
+  
+  predictions <- predictions %>% 
+    rowwise() %>%
+    mutate(
+        sensitivities = list(roc$sensitivities),
+       specificities = list(roc$specificities))
+  
+  
+  aucs_file <- "./../../data/processed/aucs.csv"
+  preds_to_write <- predictions %>%
+    select(-value, 
+           -sensitivities, 
+           -specificities,
+           -roc)
+  preds_to_write$auc <- unlist(preds_to_write$auc)
+  
+  preds_to_write %>%
+    glimpse
+  if (!file.exists(aucs_file)) {
+    # If the file doesn't exist, create a new file with just the new_data
+    write.csv(preds_to_write, file = aucs_file, row.names = FALSE)
+  } else {
+    # Step 1: Read the original dataframe from the file
+    original_df <- read.csv(aucs_file)
+  
+    # Step 3: Append the new dataframe to the original dataframe
+    combined_df <- rbind(original_df, preds_to_write)
+  
+    # Step 4: Write the combined dataframe back to the original file
+    write.csv(combined_df, file = aucs_file, row.names = FALSE)
+  }
+}
+```
+```{r}
+all_results <- read.csv(aucs_file) %>%
+  filter(dataset != "agaricus_lepiota")
+```
+
+```{r}
+all_results %>%
+  view("all")
+```
+
+
+
+```{r}
+grouped <- all_results %>% group_by(
+  dataset,
+  measurementType
+) %>%
+  summarise(max_auc = max(auc),
+            mean_auc = mean(auc),
+            std_auc = sd(auc),
+            n=n()) 
+
+grouped <- grouped %>%
+  group_by(dataset) %>%
+  mutate(rank = rank(-max_auc),
+         rank_mean = rank(-mean_auc))
+
+grouped %>%
+  
+  arrange(dataset, -max_auc) %>%
+  view("summary")
+```
+
+```{r}
+grouped %>% 
+  select(measurementType, dataset,max_auc) %>%
+  mutate(max_auc = -max_auc) %>%
+  pivot_wider(names_from = measurementType, values_from = max_auc) %>%
+  write_csv(., "./../../data/processed/experiment_aucs.csv")
+```
+
+
+
+```{r}
+grouped <- grouped %>%
+  left_join(datasets_metadata, join_by(dataset==name))
+```
+
+
+
+```{r}
+predictions %>%
+  glimpse
+```
+
+```{r}
+grouped %>%
+  glimpse
+
+library(DescTools)
+
+boxplot(rank ~ measurementType, data=grouped)
+
+  nemenyi_result <- NemenyiTest(rank ~ measurementType, data=grouped, method = "nemenyi")
+
+nemenyi_result
+```
+
+```{r}
+grouped %>%
+  group_by(measurementType) %>%
+  summarise(mean_rank = mean(rank))
+```
+
+```{r}
+grouped %>%
+  mutate(log_length = round(log(length))) %>%
+  group_by(log_length, measurementType) %>%
+  summarise(mean_rank = mean(rank)) %>%
+  ggplot(aes(log_length, mean_rank, group=measurementType, color=measurementType)) +
+  geom_line() +
+  geom_point()
+```
+
+```{r}
+grouped %>%
+  mutate(round_width = round(width/5)*5) %>%
+  group_by(round_width, measurementType) %>%
+  summarise(mean_rank = mean(rank)) %>%
+  ggplot(aes(round_width, mean_rank, group=measurementType, color=measurementType)) +
+  geom_line() +
+  geom_point() +
+  xlim(0, 100)
+```
+
+
+Patricia Riddle to Everyone (27 Jul 2023, 10:34)
+https://github.com/Didayolo/ranky
+https://www.theoj.org/joss-papers/joss.02173/10.21105.joss.02173.pdf
+ 
+Patricia Riddle to Everyone (27 Jul 2023, 10:40)
+/https://www.jmlr.org/papers/volume7/demsar06a/demsar06a.pdf
+Whenallclassifiersarecomparedwithacontrolclassifier,wecaninsteadoftheNemenyitest useoneofthegeneralproceduresforcontrollingthefamily-wiseerrorinmultiplehypothesistesting,suchastheBonferronicorrectionorsimilarprocedures.Althoughthesemethodsaregenerally conservativeandcanhavelittlepower,theyareinthisspecificcasemorepowerfulthantheNemenyitest,sincethelatteradjuststhecriticalvalueformakingk(k−1)/2comparisonswhilewhen comparingwithacontrolweonlymakek−1comparisons.
+ 
+Patricia Riddle to Everyone (27 Jul 2023, 10:46)
+https://search.r-project.org/CRAN/refmans/mlr/html/generateCritDifferencesData.html

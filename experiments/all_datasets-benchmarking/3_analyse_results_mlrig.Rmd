@@ -10,16 +10,19 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 require("tidyverse")
 library(pROC)
-experiment_sha <- "24c00ce9" # 24088379
-experiment_sha <- "b53e57d1" 
-experiment_sha <- "24088379"
-experiment_sha <- "b4c86de1"
-experiment_sha <- "4bcfe941"
+# experiment_sha <- "24c00ce9" # 24088379
+# experiment_sha <- "b53e57d1" 
+# experiment_sha <- "24088379"
+# experiment_sha <- "b4c86de1"
+# experiment_sha <- "4bcfe941"
+
 sha_file <- "./sha_file.json"
 sha_doc <- rjson::fromJSON(file=sha_file)
 config_doc <- rjson::fromJSON(file="./all_data_benchmarking_experiment_config.json")
 experiment_sha <- sha_doc$sha
 experiment_sha <- "3d382b80"
+experiment_sha <- "1dd408e3"
+experiment_sha <- "ba05ec6c"
 # dataset_name <- "GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1"
 
 # dataset_name <- "breast_cancer_wisconsin"
@@ -43,7 +46,7 @@ results <- read_csv("./../../../mount_remote_phd/processed/resultsDatabase.csv")
 
 ```
 ```{r}
-dataset_name <- "tic_tac_toe"
+dataset_name <- "adult"
 
 y_test <- read_csv(str_glue("./../../../mount_remote_phd/processed//",codename,"/",experiment_sha, "/",dataset_name,"/y_test.csv"))
 ```
@@ -178,7 +181,8 @@ predictions %>%
          auc) %>%
   mutate(auc = as.numeric(auc)) %>%
   group_by(measurementType) %>%
-  summarise(mean_auc = mean(auc))
+  summarise(mean_auc = mean(auc),
+            max_auc = max(auc))
 ```
 
 
