@@ -1,0 +1,427 @@
+[
+    {
+        "name": "GAMETES_Epistasis_2_Way_1000atts_0.4H_EDM_1_EDM_1_1",
+        "length": 1600,
+        "width": 1001
+    },
+    {
+        "name": "GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1",
+        "length": 1600,
+        "width": 21
+    },
+    {
+        "name": "GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1",
+        "length": 1600,
+        "width": 21
+    },
+    {
+        "name": "GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1",
+        "length": 1600,
+        "width": 21
+    },
+    {
+        "name": "GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_50_EDM_2_001",
+        "length": 1600,
+        "width": 21
+    },
+    {
+        "name": "GAMETES_Heterogeneity_20atts_1600_Het_0.4_0.2_75_EDM_2_001",
+        "length": 1600,
+        "width": 21
+    },
+    {
+        "name": "Hill_Valley_with_noise",
+        "length": 1212,
+        "width": 101
+    },
+    {
+        "name": "Hill_Valley_without_noise",
+        "length": 1212,
+        "width": 101
+    },
+    {
+        "name": "adult",
+        "length": 48842,
+        "width": 15
+    },
+    {
+        "name": "agaricus_lepiota",
+        "length": 8145,
+        "width": 23
+    },
+    {
+        "name": "analcatdata_aids",
+        "length": 50,
+        "width": 5
+    },
+    {
+        "name": "analcatdata_asbestos",
+        "length": 83,
+        "width": 4
+    },
+    {
+        "name": "analcatdata_bankruptcy",
+        "length": 50,
+        "width": 7
+    },
+    {
+        "name": "analcatdata_boxing1",
+        "length": 120,
+        "width": 4
+    },
+    {
+        "name": "analcatdata_boxing2",
+        "length": 132,
+        "width": 4
+    },
+    {
+        "name": "analcatdata_creditscore",
+        "length": 100,
+        "width": 7
+    },
+    {
+        "name": "analcatdata_cyyoung8092",
+        "length": 97,
+        "width": 11
+    },
+    {
+        "name": "analcatdata_cyyoung9302",
+        "length": 92,
+        "width": 11
+    },
+    {
+        "name": "analcatdata_fraud",
+        "length": 42,
+        "width": 12
+    },
+    {
+        "name": "analcatdata_japansolvent",
+        "length": 52,
+        "width": 10
+    },
+    {
+        "name": "analcatdata_lawsuit",
+        "length": 264,
+        "width": 5
+    },
+    {
+        "name": "appendicitis",
+        "length": 106,
+        "width": 8
+    },
+    {
+        "name": "australian",
+        "length": 690,
+        "width": 15
+    },
+    {
+        "name": "backache",
+        "length": 180,
+        "width": 33
+    },
+    {
+        "name": "biomed",
+        "length": 209,
+        "width": 9
+    },
+    {
+        "name": "breast",
+        "length": 699,
+        "width": 11
+    },
+    {
+        "name": "breast_cancer",
+        "length": 286,
+        "width": 10
+    },
+    {
+        "name": "breast_cancer_wisconsin",
+        "length": 569,
+        "width": 31
+    },
+    {
+        "name": "breast_w",
+        "length": 699,
+        "width": 10
+    },
+    {
+        "name": "buggyCrx",
+        "length": 690,
+        "width": 16
+    },
+    {
+        "name": "bupa",
+        "length": 345,
+        "width": 6
+    },
+    {
+        "name": "chess",
+        "length": 3196,
+        "width": 37
+    },
+    {
+        "name": "churn",
+        "length": 5000,
+        "width": 21
+    },
+    {
+        "name": "clean1",
+        "length": 476,
+        "width": 169
+    },
+    {
+        "name": "clean2",
+        "length": 6598,
+        "width": 169
+    },
+    {
+        "name": "cleve",
+        "length": 303,
+        "width": 14
+    },
+    {
+        "name": "coil2000",
+        "length": 9822,
+        "width": 86
+    },
+    {
+        "name": "colic",
+        "length": 368,
+        "width": 23
+    },
+    {
+        "name": "corral",
+        "length": 160,
+        "width": 7
+    },
+    {
+        "name": "credit_a",
+        "length": 690,
+        "width": 16
+    },
+    {
+        "name": "credit_g",
+        "length": 1000,
+        "width": 21
+    },
+    {
+        "name": "crx",
+        "length": 690,
+        "width": 16
+    },
+    {
+        "name": "dis",
+        "length": 3772,
+        "width": 30
+    },
+    {
+        "name": "flare",
+        "length": 1066,
+        "width": 11
+    },
+    {
+        "name": "german",
+        "length": 1000,
+        "width": 21
+    },
+    {
+        "name": "glass2",
+        "length": 163,
+        "width": 10
+    },
+    {
+        "name": "heart_c",
+        "length": 303,
+        "width": 14
+    },
+    {
+        "name": "heart_h",
+        "length": 294,
+        "width": 14
+    },
+    {
+        "name": "heart_statlog",
+        "length": 270,
+        "width": 14
+    },
+    {
+        "name": "house_votes_84",
+        "length": 435,
+        "width": 17
+    },
+    {
+        "name": "hungarian",
+        "length": 294,
+        "width": 14
+    },
+    {
+        "name": "hypothyroid",
+        "length": 3163,
+        "width": 26
+    },
+    {
+        "name": "ionosphere",
+        "length": 351,
+        "width": 35
+    },
+    {
+        "name": "irish",
+        "length": 500,
+        "width": 6
+    },
+    {
+        "name": "kr_vs_kp",
+        "length": 3196,
+        "width": 37
+    },
+    {
+        "name": "labor",
+        "length": 57,
+        "width": 17
+    },
+    {
+        "name": "lupus",
+        "length": 87,
+        "width": 4
+    },
+    {
+        "name": "magic",
+        "length": 19020,
+        "width": 11
+    },
+    {
+        "name": "mofn_3_7_10",
+        "length": 1324,
+        "width": 11
+    },
+    {
+        "name": "molecular_biology_promoters",
+        "length": 106,
+        "width": 58
+    },
+    {
+        "name": "mofn_3_7_10",
+        "length": 556,
+        "width": 7
+    },
+    {
+        "name": "monk2",
+        "length": 601,
+        "width": 7
+    },
+    {
+        "name": "monk3",
+        "length": 554,
+        "width": 7
+    },
+    {
+        "name": "mushroom",
+        "length": 8124,
+        "width": 23
+    },
+    {
+        "name": "mux6",
+        "length": 128,
+        "width": 7
+    },
+    {
+        "name": "parity5",
+        "length": 32,
+        "width": 6
+    },
+    {
+        "name": "parity5+5",
+        "length": 1124,
+        "width": 11
+    },
+    {
+        "name": "phoneme",
+        "length": 5404,
+        "width": 6
+    },
+    {
+        "name": "pima",
+        "length": 768,
+        "width": 9
+    },
+    {
+        "name": "prnn_crabs",
+        "length": 200,
+        "width": 8
+    },
+    {
+        "name": "prnn_synth",
+        "length": 250,
+        "width": 3
+    },
+    {
+        "name": "profb",
+        "length": 672,
+        "width": 10
+    },
+    {
+        "name": "ring",
+        "length": 7400,
+        "width": 21
+    },
+    {
+        "name": "saheart",
+        "length": 462,
+        "width": 10
+    },
+    {
+        "name": "sonar",
+        "length": 208,
+        "width": 61
+    },
+    {
+        "name": "spambase",
+        "length": 4601,
+        "width": 58
+    },
+    {
+        "name": "spect",
+        "length": 267,
+        "width": 23
+    },
+    {
+        "name": "spectf",
+        "length": 349,
+        "width": 45
+    },
+    {
+        "name": "threeOf9",
+        "length": 512,
+        "width": 10
+    },
+    {
+        "name": "tic_tac_toe",
+        "length": 958,
+        "width": 10
+    },
+    {
+        "name": "tokyo1",
+        "length": 959,
+        "width": 45
+    },
+    {
+        "name": "twonorm",
+        "length": 7400,
+        "width": 21
+    },
+    {
+        "name": "vote",
+        "length": 435,
+        "width": 17
+    },
+    {
+        "name": "wdbc",
+        "length": 569,
+        "width": 31
+    },
+    {
+        "name": "xd6",
+        "length": 973,
+        "width": 10
+    }
+]
