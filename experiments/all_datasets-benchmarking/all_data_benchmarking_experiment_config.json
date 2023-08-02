@@ -84,7 +84,7 @@
             "base_config_path": "./config-generic"
         },
         "propneat_retrain": {
-            "n_epochs": 6000,
+            "n_epochs": 10000,
             "n_iterations": 10
         }
     },
