@@ -78,9 +78,9 @@
         },
         "propneat": {
             "n_iterations": 5,
-            "population_size": 250,
-            "epochs_per_generation": 15,
-            "max_n_generations": 150,
+            "population_size": 500,
+            "epochs_per_generation": 25,
+            "max_n_generations": 500,
             "base_config_path": "./config-generic"
         },
         "propneat_retrain": {
