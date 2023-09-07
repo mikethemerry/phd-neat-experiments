@@ -10,6 +10,7 @@ from explaneat.data.wranglers import GENERIC_WRANGLER
 from explaneat.experimenter.results import Result
 from explaneat.evaluators.evaluators import binary_cross_entropy
 
+from sklearn.model_selection import train_test_split
 
 from explaneat.core.neuralneat import NeuralNeat as nneat
 from explaneat.core import backprop
@@ -33,28 +34,35 @@ from torch.utils.data import Dataset, DataLoader
 
 
 parser = argparse.ArgumentParser(description="Provide the experiment config")
-parser.add_argument('conf_file',
-                    metavar='experiment_config_file',
-                    type=str,
-                    help="Path to experiment config")
-parser.add_argument("ref_file",
-                    metavar='experiment_reference_file',
-                    type=str,
-                    help="Path to experiment ref file")
-parser.add_argument('data_name', metavar='experiment_data_file', type=str,
-                    help="Path to experiment data")
+parser.add_argument(
+    "conf_file",
+    metavar="experiment_config_file",
+    type=str,
+    help="Path to experiment config",
+)
+parser.add_argument(
+    "ref_file",
+    metavar="experiment_reference_file",
+    type=str,
+    help="Path to experiment ref file",
+)
+parser.add_argument(
+    "data_name",
+    metavar="experiment_data_file",
+    type=str,
+    help="Path to experiment data",
+)
 
 args = parser.parse_args()
 
 experiment = GenericExperiment(
-    args.conf_file,
-    confirm_path_creation=False,
-    ref_file=args.ref_file)
+    args.conf_file, confirm_path_creation=False, ref_file=args.ref_file
+)
 logger = experiment.logger
 
 
 experiment.create_logging_header("Starting {}".format(__file__), 50)
-model_config = experiment.config['model']['neural_network']
+model_config = experiment.config["model"]["neural_network"]
 
 # ---------------- Load data ------------------------------
 
@@ -64,8 +72,9 @@ processed_data_location = os.path.join(base_data_location, args.data_name)
 
 generic_wrangler = GENERIC_WRANGLER(processed_data_location)
 
-X_train, y_train = generic_wrangler.train_sets_as_np
+X_train_base, y_train_base = generic_wrangler.train_sets_as_np
 X_test, y_test = generic_wrangler.test_sets_as_np
+
 
 X_test_tt = torch.tensor(X_test)
 y_test_tt = torch.tensor(y_test)
@@ -73,45 +82,45 @@ y_test_tt = torch.tensor(y_test)
 
 # ------------------- Set up environment ------------------------------
 
-config_path = experiment.config['model']['propneat']['base_config_path']
+config_path = experiment.config["model"]["propneat"]["base_config_path"]
 
 # epoch_points = [10]
 # Manually create temporary file in the same directory as the original file
-temp_file_path = os.path.join(os.path.dirname(config_path), 'temp_config.ini')
-with open(temp_file_path, 'w') as temp_file, open(config_path, 'r') as original_file:
+temp_file_path = os.path.join(os.path.dirname(config_path), "temp_config.ini")
+with open(temp_file_path, "w") as temp_file, open(config_path, "r") as original_file:
     # Copy contents of original file to temporary file
     temp_file.write(original_file.read())
 
     # Add two lines to the end of the temporary file
-    temp_file.write('\nnum_inputs = {}'.format(X_test_tt.shape[1]))
+    temp_file.write("\nnum_inputs = {}".format(X_test_tt.shape[1]))
 
 # Call the runFile function with the temporary file
-base_config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                          temp_file_path)
+base_config = neat.Config(
+    neat.DefaultGenome,
+    neat.DefaultReproduction,
+    neat.DefaultSpeciesSet,
+    neat.DefaultStagnation,
+    temp_file_path,
+)
 
 # Delete the temporary file
 os.remove(temp_file_path)
 
 
-base_config.pop_size = experiment.config['model']['propneat']['population_size']
+base_config.pop_size = experiment.config["model"]["propneat"]["population_size"]
 # base_config.genome_config.num_inputs = X_test_tt.shape[1]
 # base_config.num_inputs = X_test_tt.shape[1]
 # ------------------- Define model ------------------------------
 
 
 def instantiate_population(config, xs, ys):
-
     # if not os.path.exists(saveLocation):
     # os.makedirs(saveLocation)
 
     # config.save(os.path.join(saveLocation, 'config.conf'))
 
     # Create the population, which is the top-level object for a NEAT run.
-    p = BackpropPopulation(config,
-                           xs,
-                           ys,
-                           criterion=nn.BCELoss())
+    p = BackpropPopulation(config, xs, ys, criterion=nn.BCELoss())
 
     # Add a stdout reporter to show progress in the terminal.
     p.add_reporter(neat.StdOutReporter(True))
@@ -125,15 +134,22 @@ def instantiate_population(config, xs, ys):
 
     return p
 
+
 # ------------------- instantiate model ------------------------------
 
 
 # ------------------- train model ------------------------------
 my_random_seed = experiment.config["random_seed"]
 
-for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]):
+for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]):
     my_random_seed = experiment.config["random_seed"] + iteration_no
+
     random.seed(my_random_seed)
+
+    # split data into train and validate using sklearn
+    X_train, X_validate, y_train, y_validate = train_test_split(
+        X_train_base, y_train_base, test_size=0.3, random_state=my_random_seed
+    )
 
     config = deepcopy(base_config)
 
@@ -142,9 +158,11 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
 
     p = instantiate_population(config, X_train, y_train)
     # Run for up to nGenerations generations.
-    winner = p.run(binary_cross_entropy,
-                   experiment.config['model']['propneat']["max_n_generations"],
-                   nEpochs=experiment.config['model']['propneat']['epochs_per_generation'])
+    winner = p.run(
+        binary_cross_entropy,
+        experiment.config["model"]["propneat"]["max_n_generations"],
+        nEpochs=experiment.config["model"]["propneat"]["epochs_per_generation"],
+    )
 
     g = p.best_genome
 
@@ -153,65 +171,63 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
     g_result = Result(
         g,
         "best_genome",
-        experiment.config['experiment']['name'],
+        experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
-        iteration_no*100,
-        {
-            "iteration": iteration_no*100
-        }
+        iteration_no * 100,
+        {"iteration": iteration_no * 100},
     )
 
     experiment.results_database.add_result(g_result)
     g_map = Result(
         visualize.draw_net(config, g).source,
         "best_genome_map",
-        experiment.config['experiment']['name'],
+        experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
-        iteration_no*100,
+        iteration_no * 100,
         {
-            "iteration": iteration_no*100,
-        }
+            "iteration": iteration_no * 100,
+        },
     )
     experiment.results_database.add_result(g_map)
 
     skippiness = Result(
         explainer.skippines(),
         "skippiness",
-        experiment.config['experiment']['name'],
+        experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
-        iteration_no*100,
+        iteration_no * 100,
         {
-            "iteration": iteration_no*100,
-        }
+            "iteration": iteration_no * 100,
+        },
     )
     experiment.results_database.add_result(skippiness)
 
     depth = Result(
         explainer.depth(),
         "depth",
-        experiment.config['experiment']['name'],
+        experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
-        iteration_no*100,
+        iteration_no * 100,
         {
-            "iteration": iteration_no*100,
-        }
+            "iteration": iteration_no * 100,
+        },
     )
     experiment.results_database.add_result(depth)
 
     param_size = Result(
         explainer.n_genome_params(),
         "param_size",
-        experiment.config['experiment']['name'],
+        experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
-        iteration_no*100,
+        iteration_no * 100,
         {
-            "iteration": iteration_no*100,
-        }
+            "iteration": iteration_no * 100,
+        },
     )
     experiment.results_database.add_result(param_size)
 
@@ -221,79 +237,89 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
     preds_results = Result(
         json.dumps(list(propneat_results)),
         "propneat_prediction",
-        experiment.config['experiment']['name'],
+        experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
-        iteration_no*100,
-        {
-            "iteration": iteration_no*100
-        }
+        iteration_no * 100,
+        {"iteration": iteration_no * 100},
     )
     experiment.results_database.add_result(preds_results)
 
     experiment.results_database.save()
-    for my_it in range(experiment.config['model']['propneat_retrain']['n_iterations']):
+    for my_it in range(experiment.config["model"]["propneat_retrain"]["n_iterations"]):
         explainer.net.reinitialse_network_weights()
-        explainer.net.retrain(X_train, y_train,
-                              n_epochs=experiment.config['model']['propneat_retrain']['n_epochs'], choose_best=True,
-                              validate_split=0.3,
-                              random_seed=experiment.random_seed+my_it)
+        explainer.net.retrain(
+            X_train,
+            y_train,
+            n_epochs=experiment.config["model"]["propneat_retrain"]["n_epochs"],
+            choose_best=True,
+            validate_split=0.3,
+            random_seed=experiment.random_seed + 10 * iteration_no + my_it,
+        )
 
-        explainer.net.set_parameters_from_object(
-            explainer.net.retrainer['best_model'])
+        preds_results = Result(
+            json.dumps(explainer.net.retrainer),
+            "propneat_retrain__validation_details",
+            experiment.config["experiment"]["name"],
+            args.data_name,
+            experiment.experiment_sha,
+            iteration_no * 100 + my_it,
+            {"iteration": iteration_no * 100 + my_it},
+        )
+        experiment.results_database.add_result(preds_results)
+
+        explainer.net.set_parameters_from_object(explainer.net.retrainer["best_model"])
         propneat_retrain_results_tt = explainer.net.forward(X_test_tt)
-        propneat_retrain_results = [r[0]
-                                    for r in propneat_retrain_results_tt.detach().numpy()]
+        propneat_retrain_results = [
+            r[0] for r in propneat_retrain_results_tt.detach().numpy()
+        ]
 
         preds_results = Result(
             json.dumps(list(propneat_retrain_results)),
             "propneat_retrain_prediction",
-            experiment.config['experiment']['name'],
+            experiment.config["experiment"]["name"],
             args.data_name,
             experiment.experiment_sha,
-            iteration_no*100+my_it,
-            {
-                "iteration": iteration_no*100+my_it
-            }
+            iteration_no * 100 + my_it,
+            {"iteration": iteration_no * 100 + my_it},
         )
         experiment.results_database.add_result(preds_results)
 
-        experiment.results_database.add_result(Result(
-            explainer.net.retrainer['best_model_epoch'],
-            "propneat_retrain_n_epochs",
-            experiment.config['experiment']['name'],
-            args.data_name,
-            experiment.experiment_sha,
-            iteration_no*100+my_it,
-            {
-                "iteration": iteration_no*100+my_it
-            }
-        ))
-        experiment.results_database.add_result(Result(
-            explainer.net.retrainer['best_model_loss'],
-            "propneat_retrain_best_val_loss",
-            experiment.config['experiment']['name'],
-            args.data_name,
-            experiment.experiment_sha,
-            iteration_no*100+my_it,
-            {
-                "iteration": iteration_no*100+my_it
-            }
-        ))
-        experiment.results_database.add_result(Result(
-            explainer.net.retrainer['validate_losses'],
-            "validate_losses",
-            experiment.config['experiment']['name'],
-            args.data_name,
-            experiment.experiment_sha,
-            iteration_no*100+my_it,
-            {
-                "iteration": iteration_no*100+my_it
-            }
-        ))
+        experiment.results_database.add_result(
+            Result(
+                explainer.net.retrainer["best_model_epoch"],
+                "propneat_retrain_n_epochs",
+                experiment.config["experiment"]["name"],
+                args.data_name,
+                experiment.experiment_sha,
+                iteration_no * 100 + my_it,
+                {"iteration": iteration_no * 100 + my_it},
+            )
+        )
+        experiment.results_database.add_result(
+            Result(
+                explainer.net.retrainer["best_model_loss"],
+                "propneat_retrain_best_val_loss",
+                experiment.config["experiment"]["name"],
+                args.data_name,
+                experiment.experiment_sha,
+                iteration_no * 100 + my_it,
+                {"iteration": iteration_no * 100 + my_it},
+            )
+        )
+        experiment.results_database.add_result(
+            Result(
+                explainer.net.retrainer["validate_losses"],
+                "validate_losses",
+                experiment.config["experiment"]["name"],
+                args.data_name,
+                experiment.experiment_sha,
+                iteration_no * 100 + my_it,
+                {"iteration": iteration_no * 100 + my_it},
+            )
+        )
 
-    experiment.create_logging_header(
-        "Ending {} - variation 1".format(__file__), 50)
+    experiment.create_logging_header("Ending {} - variation 1".format(__file__), 50)
 
     experiment.results_database.save()
 
@@ -325,9 +351,7 @@ for iteration_no in range(experiment.config['model']['propneat']["n_iterations"]
 experiment.create_logging_header("Ending {}".format(__file__), 50)
 
 
-experiment.create_logging_header(
-    "Starting {} - variation 1".format(__file__), 50)
+experiment.create_logging_header("Starting {} - variation 1".format(__file__), 50)
 
 
-experiment.create_logging_header(
-    "Ending {} - variation 2".format(__file__), 50)
+experiment.create_logging_header("Ending {} - variation 2".format(__file__), 50)
