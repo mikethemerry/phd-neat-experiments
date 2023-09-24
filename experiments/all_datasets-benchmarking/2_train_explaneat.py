@@ -257,8 +257,14 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
             random_seed=experiment.random_seed + 10 * iteration_no + my_it,
         )
 
+        validation_details = {
+            "validate_losses": explainer.net.retrainer["validate_losses"],
+            "best_model_loss": explainer.net.retrainer["best_model_loss"],
+            "best_model_epoch": explainer.net.retrainer["best_model_epoch"],
+        }
+
         preds_results = Result(
-            json.dumps(explainer.net.retrainer),
+            json.dumps(validation_details),
             "propneat_retrain__validation_details",
             experiment.config["experiment"]["name"],
             args.data_name,
