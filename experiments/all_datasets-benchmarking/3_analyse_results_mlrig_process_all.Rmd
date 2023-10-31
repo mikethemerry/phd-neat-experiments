@@ -23,6 +23,7 @@ experiment_sha <- sha_doc$sha
 experiment_sha <- "3d382b80"
 experiment_sha <- "1dd408e3"
 experiment_sha <- "ba05ec6c"
+experiment_sha <- "305afb53"
 # dataset_name <- "GAMETES_Epistasis_3_Way_20atts_0.2H_EDM_1_1"
 
 # dataset_name <- "breast_cancer_wisconsin"
@@ -167,13 +168,28 @@ grouped %>%
   mutate(max_auc = -max_auc) %>%
   pivot_wider(names_from = measurementType, values_from = max_auc) %>%
   write_csv(., "./../../data/processed/experiment_aucs.csv")
+
+grouped %>% 
+  select(measurementType, dataset,mean_auc) %>%
+  mutate(mean_auc = -mean_auc) %>%
+  pivot_wider(names_from = measurementType, values_from = mean_auc) %>%
+  write_csv(., "./../../data/processed/experiment_aucs_mean.csv")
 ```
 
 
 
 ```{r}
 grouped <- grouped %>%
-  left_join(datasets_metadata, join_by(dataset==name))
+  left_join(datasets_metadata, join_by(dataset==name)) %>%
+  left_join(grouped %>%
+    group_by(dataset) %>%
+    summarise(best_auc = max(max_auc)) %>%
+    mutate(difficulty = rank(best_auc)), 
+    join_by(dataset==dataset)) %>%
+  mutate(shortfall = max_auc-best_auc)
+
+
+
 ```
 
 
@@ -189,11 +205,14 @@ grouped %>%
 
 library(DescTools)
 
-boxplot(rank ~ measurementType, data=grouped)
+# boxplot(rank_mean ~ measurementType, data=grouped)
 
-  nemenyi_result <- NemenyiTest(rank ~ measurementType, data=grouped, method = "nemenyi")
+nemenyi_result_max <- NemenyiTest(rank ~ measurementType, data=grouped, method = "nemenyi")
+nemenyi_result_mean <- NemenyiTest(rank_mean ~ measurementType, data=grouped, method = "nemenyi")
 
-nemenyi_result
+
+nemenyi_result_mean
+nemenyi_result_max
 ```
 
 ```{r}
@@ -222,6 +241,110 @@ grouped %>%
   geom_point() +
   xlim(0, 100)
 ```
+
+```{r}
+grouped %>%
+  mutate(round_auc = round(max_auc/0.10)*10) %>%
+  group_by(round_auc, measurementType) %>%
+  summarise(mean_rank = mean(rank)) %>%
+  ggplot(aes(round_auc, mean_rank, group=measurementType, color=measurementType)) +
+  geom_line() +
+  geom_point()
+```
+```{r}
+grouped %>%
+  view
+```
+
+
+
+
+```{r}
+grouped %>%
+  filter(measurementType %in% 
+           c(
+             "rf_predictions",
+             "propneat_prediction",
+             "propneat_retrain_prediction"
+             # "nn_prediction",
+             # "linear_regression_predictions"
+             )) %>%
+  ggplot(aes(difficulty, max_auc, group=measurementType, color=measurementType)) +
+  geom_line() +
+  geom_point() +
+  ylim(0.5, 1) 
+```
+
+```{r}
+grouped %>%
+  filter(measurementType %in% 
+           c(
+             # "rf_predictions",
+             # "propneat_prediction",
+             "propneat_retrain_prediction",
+             "linear_regression_predictions"
+             # "nn_prediction"
+             )) %>%
+  ggplot(aes(difficulty, shortfall, group=measurementType, color=measurementType)) +
+  geom_line() +
+  geom_point()
+```
+```{r}
+grouped %>%
+  filter(measurementType %in% 
+           c(
+             # "rf_predictions",
+             "propneat_prediction",
+             # "propneat_retrain_prediction",
+             "linear_regression_predictions"
+             # "nn_prediction"
+             )) %>%
+  ggplot(aes(difficulty, shortfall, group=measurementType, color=measurementType)) +
+  geom_line() +
+  geom_point()
+```
+```{r}
+grouped %>%
+  filter(measurementType %in% 
+           c(
+             # "rf_predictions",
+             "propneat_prediction",
+             "propneat_retrain_prediction",
+             "nn_prediction"
+             # "linear_regression_predictions"
+             )) %>%
+  ggplot(aes(max_auc, mean_auc, group=measurementType, color=measurementType)) +
+  geom_line() +
+  geom_point()
+
+```
+
+```{r}
+
+all_results %>% mutate(
+  matched_run = round(iteration / 100) 
+  ) %>% filter(
+    dataset %in% c("breast_cancer", 
+                   "dis",
+                   "mushroom",
+                   "churn",
+                   "hypothyroid"),
+  measurementType %in% c("propneat_prediction", "propneat_retrain_prediction")
+) %>%
+  ggplot(aes(measurementType, auc)) +
+  geom_point() +
+  facet_grid(dataset~matched_run)
+
+
+all_results %>%
+  group_by(dataset, measurementType) %>%
+  summarise(n=n())
+```
+
+```{r}
+
+```
+
 
 
 Patricia Riddle to Everyone (27 Jul 2023, 10:34)
