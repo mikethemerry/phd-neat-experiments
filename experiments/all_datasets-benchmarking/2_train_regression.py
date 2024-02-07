@@ -13,23 +13,30 @@ from explaneat.experimenter.results import Result
 
 
 parser = argparse.ArgumentParser(description="Provide the experiment config")
-parser.add_argument('conf_file',
-                    metavar='experiment_config_file',
-                    type=str,
-                    help="Path to experiment config")
-parser.add_argument("ref_file",
-                    metavar='experiment_reference_file',
-                    type=str,
-                    help="Path to experiment ref file")
-parser.add_argument('data_name', metavar='experiment_data_file', type=str,
-                    help="Path to experiment data")
+parser.add_argument(
+    "conf_file",
+    metavar="experiment_config_file",
+    type=str,
+    help="Path to experiment config",
+)
+parser.add_argument(
+    "ref_file",
+    metavar="experiment_reference_file",
+    type=str,
+    help="Path to experiment ref file",
+)
+parser.add_argument(
+    "data_name",
+    metavar="experiment_data_file",
+    type=str,
+    help="Path to experiment data",
+)
 
 args = parser.parse_args()
 
 experiment = GenericExperiment(
-    args.conf_file,
-    confirm_path_creation=False,
-    ref_file=args.ref_file)
+    args.conf_file, confirm_path_creation=False, ref_file=args.ref_file
+)
 logger = experiment.logger
 
 
@@ -50,18 +57,20 @@ X_test, y_test = generic_wrangler.test_sets
 
 regression_model = LinearRegression()
 regression_model.fit(X_train, y_train)
-regression_preds = [pred[0] for pred in regression_model.predict(X_test)]
+preds = regression_model.predict(X_test)
+try:
+    regression_preds = [pred[0] for pred in preds]
+except IndexError:
+    regression_preds = preds
 
 preds_results = Result(
     json.dumps(list(regression_preds)),
     "linear_regression_predictions",
-    experiment.config['experiment']['name'],
+    experiment.config["experiment"]["name"],
     args.data_name,
     experiment.experiment_sha,
     0,
-    {
-        "iteration": 0
-    }
+    {"iteration": 0},
 )
 experiment.results_database.add_result(preds_results)
 
@@ -73,13 +82,11 @@ regression_preds = [pred[0] for pred in regression_model.predict(X_test)]
 preds_results = Result(
     json.dumps(list(regression_preds)),
     "logistic_regression_predictions",
-    experiment.config['experiment']['name'],
+    experiment.config["experiment"]["name"],
     args.data_name,
     experiment.experiment_sha,
     0,
-    {
-        "iteration": 0
-    }
+    {"iteration": 0},
 )
 experiment.results_database.add_result(preds_results)
 
