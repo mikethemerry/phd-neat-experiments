@@ -74,11 +74,12 @@ while IFS= read -r DATA; do
 
    if (($STEP <= 2));
    then
-      ipython 2_train_svm.py $CONFIG $SHAFILE "$DATA"
+      # ipython 2_train_svm.py $CONFIG $SHAFILE "$DATA"
       ipython 2_train_rf.py $CONFIG $SHAFILE "$DATA"
-      ipython 2_train_regression.py $CONFIG $SHAFILE "$DATA"
-      ipython 2_train_nn.py $CONFIG $SHAFILE "$DATA"
-      ipython 2_train_explaneat.py $CONFIG $SHAFILE "$DATA"
+      # ipython 2_train_regression.py $CONFIG $SHAFILE "$DATA"
+      # ipython 2_train_nn.py $CONFIG $SHAFILE "$DATA"
+      # ipython 2_train_explaneat.py $CONFIG $SHAFILE "$DATA"
+      ipython 2_train_explaneat_naive.py $CONFIG $SHAFILE "$DATA"
    fi
 
 done < "$FILEPATH"
