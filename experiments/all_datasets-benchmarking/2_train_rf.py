@@ -115,7 +115,8 @@ preds = random_rf.best_estimator_.predict(X_test)
 # Train the model on training data
 random_rf.fit(X_train, y_train)
 # Use the forest's predict method on the test data
-rf_preds = random_rf.predict_proba(X_test)
+rf_preds_proba = random_rf.predict_proba(X_test)
+rf_preds = [p[1] for p in rf_preds_proba]
 
 
 preds_results = Result(
