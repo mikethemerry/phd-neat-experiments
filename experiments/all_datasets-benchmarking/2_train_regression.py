@@ -77,7 +77,7 @@ experiment.results_database.add_result(preds_results)
 
 regression_model = LogisticRegression()
 regression_model.fit(X_train, y_train)
-regression_preds = [pred[0] for pred in regression_model.predict(X_test)]
+regression_preds = [pred for pred in regression_model.predict(X_test)]
 
 preds_results = Result(
     json.dumps(list(regression_preds)),
