@@ -171,7 +171,7 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
 
     g_result = Result(
         g,
-        "best_genome",
+        "explaneat_naive_best_genome",
         experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
@@ -182,7 +182,7 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
     experiment.results_database.add_result(g_result)
     g_map = Result(
         visualize.draw_net(config, g).source,
-        "best_genome_map",
+        "explaneat_naive_best_genome_map",
         experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
@@ -195,7 +195,7 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
 
     skippiness = Result(
         explainer.skippines(),
-        "skippiness",
+        "explaneat_naive_skippiness",
         experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
@@ -208,7 +208,7 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
 
     depth = Result(
         explainer.depth(),
-        "depth",
+        "explaneat_naive_depth",
         experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
@@ -221,7 +221,7 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
 
     param_size = Result(
         explainer.n_genome_params(),
-        "param_size",
+        "explaneat_naive_param_size",
         experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
@@ -237,7 +237,7 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
 
     preds_results = Result(
         json.dumps(list(propneat_results)),
-        "propneat_prediction",
+        "explaneat_naive_prediction",
         experiment.config["experiment"]["name"],
         args.data_name,
         experiment.experiment_sha,
@@ -247,84 +247,84 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
     experiment.results_database.add_result(preds_results)
 
     experiment.results_database.save()
-    for my_it in range(experiment.config["model"]["propneat_retrain"]["n_iterations"]):
-        explainer.net.reinitialse_network_weights()
-        explainer.net.retrain(
-            X_train,
-            y_train,
-            n_epochs=experiment.config["model"]["propneat_retrain"]["n_epochs"],
-            choose_best=True,
-            validate_split=0.3,
-            random_seed=experiment.random_seed + 10 * iteration_no + my_it,
-        )
+    # for my_it in range(experiment.config["model"]["propneat_retrain"]["n_iterations"]):
+    #     explainer.net.reinitialse_network_weights()
+    #     explainer.net.retrain(
+    #         X_train,
+    #         y_train,
+    #         n_epochs=experiment.config["model"]["propneat_retrain"]["n_epochs"],
+    #         choose_best=True,
+    #         validate_split=0.3,
+    #         random_seed=experiment.random_seed + 10 * iteration_no + my_it,
+    #     )
 
-        validation_details = {
-            "validate_losses": explainer.net.retrainer["validate_losses"],
-            "best_model_loss": explainer.net.retrainer["best_model_loss"],
-            "best_model_epoch": explainer.net.retrainer["best_model_epoch"],
-        }
+    #     validation_details = {
+    #         "validate_losses": explainer.net.retrainer["validate_losses"],
+    #         "best_model_loss": explainer.net.retrainer["best_model_loss"],
+    #         "best_model_epoch": explainer.net.retrainer["best_model_epoch"],
+    #     }
 
-        preds_results = Result(
-            json.dumps(validation_details),
-            "propneat_retrain__validation_details",
-            experiment.config["experiment"]["name"],
-            args.data_name,
-            experiment.experiment_sha,
-            iteration_no * 100 + my_it,
-            {"iteration": iteration_no * 100 + my_it},
-        )
-        experiment.results_database.add_result(preds_results)
+    #     preds_results = Result(
+    #         json.dumps(validation_details),
+    #         "explaneat_naive_validation_details",
+    #         experiment.config["experiment"]["name"],
+    #         args.data_name,
+    #         experiment.experiment_sha,
+    #         iteration_no * 100 + my_it,
+    #         {"iteration": iteration_no * 100 + my_it},
+    #     )
+    #     experiment.results_database.add_result(preds_results)
 
-        explainer.net.set_parameters_from_object(explainer.net.retrainer["best_model"])
-        propneat_retrain_results_tt = explainer.net.forward(X_test_tt)
-        propneat_retrain_results = [
-            r[0] for r in propneat_retrain_results_tt.detach().numpy()
-        ]
+    #     explainer.net.set_parameters_from_object(explainer.net.retrainer["best_model"])
+    #     propneat_retrain_results_tt = explainer.net.forward(X_test_tt)
+    #     propneat_retrain_results = [
+    #         r[0] for r in propneat_retrain_results_tt.detach().numpy()
+    #     ]
 
-        preds_results = Result(
-            json.dumps(list(propneat_retrain_results)),
-            "propneat_retrain_prediction",
-            experiment.config["experiment"]["name"],
-            args.data_name,
-            experiment.experiment_sha,
-            iteration_no * 100 + my_it,
-            {"iteration": iteration_no * 100 + my_it},
-        )
-        experiment.results_database.add_result(preds_results)
+    #     preds_results = Result(
+    #         json.dumps(list(propneat_retrain_results)),
+    #         "explaneat_naive_retrain_prediction",
+    #         experiment.config["experiment"]["name"],
+    #         args.data_name,
+    #         experiment.experiment_sha,
+    #         iteration_no * 100 + my_it,
+    #         {"iteration": iteration_no * 100 + my_it},
+    #     )
+    #     experiment.results_database.add_result(preds_results)
 
-        experiment.results_database.add_result(
-            Result(
-                explainer.net.retrainer["best_model_epoch"],
-                "propneat_retrain_n_epochs",
-                experiment.config["experiment"]["name"],
-                args.data_name,
-                experiment.experiment_sha,
-                iteration_no * 100 + my_it,
-                {"iteration": iteration_no * 100 + my_it},
-            )
-        )
-        experiment.results_database.add_result(
-            Result(
-                explainer.net.retrainer["best_model_loss"],
-                "propneat_retrain_best_val_loss",
-                experiment.config["experiment"]["name"],
-                args.data_name,
-                experiment.experiment_sha,
-                iteration_no * 100 + my_it,
-                {"iteration": iteration_no * 100 + my_it},
-            )
-        )
-        experiment.results_database.add_result(
-            Result(
-                explainer.net.retrainer["validate_losses"],
-                "validate_losses",
-                experiment.config["experiment"]["name"],
-                args.data_name,
-                experiment.experiment_sha,
-                iteration_no * 100 + my_it,
-                {"iteration": iteration_no * 100 + my_it},
-            )
-        )
+    #     experiment.results_database.add_result(
+    #         Result(
+    #             explainer.net.retrainer["best_model_epoch"],
+    #             "explaneat_naive_retrain_n_epochs",
+    #             experiment.config["experiment"]["name"],
+    #             args.data_name,
+    #             experiment.experiment_sha,
+    #             iteration_no * 100 + my_it,
+    #             {"iteration": iteration_no * 100 + my_it},
+    #         )
+    #     )
+    #     experiment.results_database.add_result(
+    #         Result(
+    #             explainer.net.retrainer["best_model_loss"],
+    #             "explaneat_naive_retrain_best_val_loss",
+    #             experiment.config["experiment"]["name"],
+    #             args.data_name,
+    #             experiment.experiment_sha,
+    #             iteration_no * 100 + my_it,
+    #             {"iteration": iteration_no * 100 + my_it},
+    #         )
+    #     )
+    #     experiment.results_database.add_result(
+    #         Result(
+    #             explainer.net.retrainer["validate_losses"],
+    #             "explaneat_naive_retrain_validate_losses",
+    #             experiment.config["experiment"]["name"],
+    #             args.data_name,
+    #             experiment.experiment_sha,
+    #             iteration_no * 100 + my_it,
+    #             {"iteration": iteration_no * 100 + my_it},
+    #         )
+    #     )
 
     experiment.create_logging_header("Ending {} - variation 1".format(__file__), 50)
 
