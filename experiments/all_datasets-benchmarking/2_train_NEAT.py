@@ -145,7 +145,7 @@ def my_binary_cross_entropy(genomes, config, xs, ys, device):
 
         preds = [net.activate(xi) for xi in xs]
 
-        preds = [min(max(pred, 0), 1) for pred in preds]
+        preds = [[min(max(pred[0], 0), 1)] for pred in preds]
         # Ensure the predictions are within the range of 0 and 1
 
         # preds = []
