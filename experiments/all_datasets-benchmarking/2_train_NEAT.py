@@ -23,7 +23,7 @@ from explaneat.core.explaneat import ExplaNEAT
 from explaneat.experimenter.results import Result, ResultsDatabase
 
 import neat
-
+import numpy as np
 
 from copy import deepcopy
 
@@ -148,6 +148,10 @@ def my_binary_cross_entropy(genomes, config, xs, ys, device):
         # for xi in xs:
         #     preds.append(net.activate(xi))
         # logger.info("Preds dtype is {}".format(preds.dtype))
+
+        # Convert preds to dtype Double using ndarray
+        preds = np.array(preds, dtype=np.double)
+
         genome.fitness = float(
             1.0 / loss(torch.tensor(preds).to(device), torch.tensor(ys))
         )
