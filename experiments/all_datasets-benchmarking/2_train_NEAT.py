@@ -133,6 +133,16 @@ def instantiate_population(config, xs, ys):
     return p
 
 
+def eval_genomes(genomes, config):
+    ## evaluate the genomes using binary cross entropy
+    for genome_id, genome in genomes:
+        genome.fitness = 4.0
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
+        for xi, xo in zip(X_train, y_train):
+            output = net.activate(xi)
+            genome.fitness -= (output[0] - xo[0]) ** 2
+
+
 # ------------------- instantiate model ------------------------------
 
 
@@ -154,7 +164,7 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
     p = instantiate_population(config, X_train, y_train)
     # Run for up to nGenerations generations.
     winner = p.run(
-        binary_cross_entropy,
+        eval_genomes,
         experiment.config["model"]["propneat"]["max_n_generations"]
         * experiment.config["model"]["propneat"]["epochs_per_generation"],
     )
