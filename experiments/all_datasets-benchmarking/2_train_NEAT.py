@@ -144,6 +144,10 @@ def my_binary_cross_entropy(genomes, config, xs, ys, device):
         net = neat.nn.FeedForwardNetwork.create(genome, config)
 
         preds = [net.activate(xi) for xi in xs]
+
+        preds = [min(max(pred, 0), 1) for pred in preds]
+        # Ensure the predictions are within the range of 0 and 1
+
         # preds = []
         # for xi in xs:
         #     preds.append(net.activate(xi))
