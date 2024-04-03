@@ -133,9 +133,31 @@ def instantiate_population(config, xs, ys):
     return p
 
 
+def my_binary_cross_entropy(genomes, config, xs, ys, device):
+
+    logger.info("Xs dtype{}".format(xs.dtype))
+    logger.info("ys dtype{}".format(ys.dtype))
+    loss = nn.BCELoss()
+    loss = loss.to(device)
+    for genome_id, genome in genomes.items():
+
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
+
+        preds = [net.activate(xi) for xi in xs]
+        # preds = []
+        # for xi in xs:
+        #     preds.append(net.activate(xi))
+        # logger.info("Preds dtype is {}".format(preds.dtype))
+        genome.fitness = float(
+            1.0 / loss(torch.tensor(preds).to(device), torch.tensor(ys))
+        )
+
+
 def eval_genomes(genomes, config):
     ## evaluate the genomes using binary cross entropy
-    binary_cross_entropy({g[0]: g[1] for g in genomes}, config, X_train, y_train, "cpu")
+    my_binary_cross_entropy(
+        {g[0]: g[1] for g in genomes}, config, X_train, y_train, "cpu"
+    )
 
 
 # ------------------- instantiate model ------------------------------
