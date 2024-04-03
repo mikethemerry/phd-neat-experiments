@@ -135,12 +135,7 @@ def instantiate_population(config, xs, ys):
 
 def eval_genomes(genomes, config):
     ## evaluate the genomes using binary cross entropy
-    for genome_id, genome in genomes:
-        genome.fitness = 4.0
-        net = neat.nn.FeedForwardNetwork.create(genome, config)
-        for xi, xo in zip(X_train, y_train):
-            output = net.activate(xi)
-            genome.fitness -= (output[0] - xo[0]) ** 2
+    binary_cross_entropy(genomes, config, X_train, y_train)
 
 
 # ------------------- instantiate model ------------------------------
