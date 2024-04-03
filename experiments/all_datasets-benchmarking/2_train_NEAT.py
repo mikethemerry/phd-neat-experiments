@@ -135,8 +135,7 @@ def instantiate_population(config, xs, ys):
 
 def eval_genomes(genomes, config):
     ## evaluate the genomes using binary cross entropy
-    print(genomes)
-    binary_cross_entropy({g[0]: g in genomes}, config, X_train, y_train, "cpu")
+    binary_cross_entropy({g[0]: g[1] for g in genomes}, config, X_train, y_train, "cpu")
 
 
 # ------------------- instantiate model ------------------------------
