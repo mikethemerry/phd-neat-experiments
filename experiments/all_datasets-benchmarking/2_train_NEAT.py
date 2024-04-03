@@ -152,8 +152,8 @@ def my_binary_cross_entropy(genomes, config, xs, ys, device):
         # Convert preds to dtype Double using ndarray
         preds = np.array(preds, dtype=np.double)
 
-        print(type(preds[0]))
-        print(type(ys[0]))
+        print(type(preds[0].dtype))
+        print(type(ys[0].dtype))
 
         genome.fitness = float(
             1.0 / loss(torch.tensor(preds).to(device), torch.tensor(ys))
