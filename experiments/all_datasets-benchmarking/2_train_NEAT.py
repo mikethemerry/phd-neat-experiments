@@ -191,8 +191,7 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
     # Run for up to nGenerations generations.
     winner = p.run(
         eval_genomes,
-        experiment.config["model"]["propneat"]["max_n_generations"]
-        * experiment.config["model"]["propneat"]["epochs_per_generation"],
+        1000,
     )
 
     g = p.best_genome
