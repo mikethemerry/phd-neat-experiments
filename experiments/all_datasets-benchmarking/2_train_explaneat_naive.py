@@ -143,6 +143,9 @@ def instantiate_population(config, xs, ys):
 my_random_seed = experiment.config["random_seed"]
 
 for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]):
+
+    start_time = datetime.datetime.now()
+
     my_random_seed = experiment.config["random_seed"] + iteration_no
 
     random.seed(my_random_seed)
@@ -163,6 +166,20 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
         binary_cross_entropy,
         experiment.config["model"]["propneat"]["max_n_generations"],
         nEpochs=experiment.config["model"]["propneat"]["epochs_per_generation"],
+    )
+
+    end_time = datetime.datetime.now()
+
+    experiment.results_database.add_result(
+        Result(
+            (end_time - start_time).seconds,
+            "explaneat_naive_train_time",
+            experiment.config["experiment"]["name"],
+            args.data_name,
+            experiment.experiment_sha,
+            iteration_no * 100,
+            {"iteration": iteration_no * 100},
+        )
     )
 
     g = p.best_genome

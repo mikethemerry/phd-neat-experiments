@@ -176,6 +176,7 @@ def eval_genomes(genomes, config):
 my_random_seed = experiment.config["random_seed"]
 
 for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]):
+    start_time = datetime.datetime.now()
     my_random_seed = experiment.config["random_seed"] + iteration_no
 
     random.seed(my_random_seed)
@@ -191,7 +192,21 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
     # Run for up to nGenerations generations.
     winner = p.run(
         eval_genomes,
-        1000,
+        2500,
+    )
+
+    end_time = datetime.datetime.now()
+
+    experiment.results_database.add_result(
+        Result(
+            (end_time - start_time).seconds,
+            "neat_train_time",
+            experiment.config["experiment"]["name"],
+            args.data_name,
+            experiment.experiment_sha,
+            iteration_no * 100,
+            {"iteration": iteration_no * 100},
+        )
     )
 
     g = p.best_genome
