@@ -6,6 +6,7 @@ from explaneat.core.errors import GenomeNotValidError
 
 
 import logging
+
 logger = logging.getLogger("experimenter.evaluators")
 
 
@@ -26,5 +27,9 @@ def binary_cross_entropy(genomes, config, xs, ys, device):
         # for xi in xs:
         #     preds.append(net.activate(xi))
         # logger.info("Preds dtype is {}".format(preds.dtype))
+        logger.info("Preds dtype is {}".format(preds.dtype))
+        logger.info("Ys dtype is {}".format(ys.dtype))
+        logger.info("device is {}".format(device))
         genome.fitness = float(
-            1./loss(torch.tensor(preds).to(device), torch.tensor(ys)))
+            1.0 / loss(torch.tensor(preds).to(device), torch.tensor(ys))
+        )
