@@ -157,12 +157,17 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
         X_train_base, y_train_base, test_size=0.3, random_state=my_random_seed
     )
 
+    X_train_tt = torch.tensor(X_train).to(device)
+    y_train_tt = torch.tensor(y_train).to(device)
+    X_validate_tt = torch.tensor(X_validate).to(device)
+    y_validate_tt = torch.tensor(y_validate).to(device)
+
     config = deepcopy(base_config)
 
     # saveLocation = saveLocationTemplate.format(
     # experiment.config['model']['random_forest'], iteration_no)
 
-    p = instantiate_population(config, X_train, y_train)
+    p = instantiate_population(config, X_train_tt, y_train_tt)
     # Run for up to nGenerations generations.
     winner = p.run(
         binary_cross_entropy,
