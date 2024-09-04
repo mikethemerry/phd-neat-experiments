@@ -59,13 +59,15 @@ class BackpropPopulation(Population):
         USE_CUDA = torch.cuda.is_available()
         # USE_CUDA = False
         self.device = torch.device("cuda:1" if USE_CUDA else "cpu")
+        print(f"Using device: {self.device}")
 
         if not type(xs) is torch.Tensor:
-            self.xs = torch.tensor(xs, dtype=torch.float64)
+            print(f"xs is not a tensor, converting to tensor and moving to device")
+            self.xs = torch.tensor(xs, dtype=torch.float64).to(self.device)
         else:
             self.xs = xs
         if not type(ys) is torch.Tensor:
-            self.ys = torch.tensor(ys, dtype=torch.float64)
+            self.ys = torch.tensor(ys, dtype=torch.float64).to(self.device)
         else:
             self.ys = ys
 
