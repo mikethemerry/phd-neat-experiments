@@ -60,6 +60,9 @@ experiment = GenericExperiment(
 )
 logger = experiment.logger
 
+USE_CUDA = torch.cuda.is_available()
+device = torch.device("cuda:1" if USE_CUDA else "cpu")
+
 
 experiment.create_logging_header("Starting {}".format(__file__), 50)
 model_config = experiment.config["model"]["neural_network"]
@@ -76,8 +79,8 @@ X_train_base, y_train_base = generic_wrangler.train_sets_as_np
 X_test, y_test = generic_wrangler.test_sets_as_np
 
 
-X_test_tt = torch.tensor(X_test)
-y_test_tt = torch.tensor(y_test)
+X_test_tt = torch.tensor(X_test).to(device)
+y_test_tt = torch.tensor(y_test).to(device)
 
 
 # ------------------- Set up environment ------------------------------
