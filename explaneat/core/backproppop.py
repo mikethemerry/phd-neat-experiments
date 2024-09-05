@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import sys
+import time
 
 
 from neat.math_util import mean, stdev
@@ -116,7 +117,10 @@ class BackpropPopulation(Population):
         losses = []
         postLosses = []
         improvements = []
+        avg_times_per_epoch = []
         for k, genome in self.population.items():
+
+            ## Start neat load up
 
             # net = NeatNet(genome, self.config, criterion=self.criterion)
             try:
@@ -135,6 +139,7 @@ class BackpropPopulation(Population):
 
             optimizer.zero_grad()
             losses = []
+
             # try:
             # self.logger.info(f"xs dtype is {xs.dtype}")
             # self.logger.info(f"xs is {xs}")
@@ -146,6 +151,7 @@ class BackpropPopulation(Population):
             # except:
             # net.help_me_debug()
             # sys.exit("Error in loss for backprop")
+            start_time = time.time()
             for i in range(nEpochs):
                 # TODO: Refactor this to use net.retrain
                 preds = net.forward(xs)
@@ -154,6 +160,12 @@ class BackpropPopulation(Population):
                 optimizer.step()
                 optimizer.zero_grad()
                 losses.append(loss)
+            end_time = time.time()
+            avg_time_per_epoch = (end_time - start_time) / nEpochs
+            avg_times_per_epoch.append(avg_time_per_epoch)
+            self.logger.info(
+                f"Average time per epoch: {avg_time_per_epoch:.4f} seconds"
+            )
             # losses[-10:]
             postBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
             lossDiff = postBPLoss - preBPLoss
@@ -176,6 +188,12 @@ class BackpropPopulation(Population):
         self.logger.info("mean improvement: %s" % mean(improvements))
         self.logger.info("best improvement: %s" % min(improvements))
         self.logger.info("best loss: %s" % min(postLosses))
+        self.logger.info(
+            f"Average time per epoch: {mean(avg_times_per_epoch):.4f} seconds"
+        )
+        self.logger.info(
+            f"Total time per backprop: {sum(avg_times_per_epoch)*nEpochs} seconds"
+        )
 
     def run(self, fitness_function, n=None, nEpochs=100):
         """ """
