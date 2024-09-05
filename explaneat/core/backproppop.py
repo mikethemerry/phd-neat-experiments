@@ -136,10 +136,12 @@ class BackpropPopulation(Population):
             optimizer.zero_grad()
             losses = []
             # try:
+            logging.info(f"xs dtype is {xs.dtype}")
+            logging.info(f"xs is {xs}")
             loss_preds = net.forward(xs)
+            logging.info(f"loss_preds is {loss_preds}")
             logging.info(f"loss_preds dtype is {loss_preds.dtype}")
             logging.info(f"ys dtype is {ys.dtype}")
-            logging.info(f"loss_preds is {loss_preds}")
             preBPLoss = F.mse_loss(loss_preds, ys).sqrt()
             # except:
             # net.help_me_debug()
