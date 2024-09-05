@@ -135,11 +135,11 @@ class BackpropPopulation(Population):
 
             optimizer.zero_grad()
             losses = []
-            try:
-                preBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
-            except:
-                net.help_me_debug()
-                sys.exit("Error in loss for backprop")
+            # try:
+            preBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
+            # except:
+            # net.help_me_debug()
+            # sys.exit("Error in loss for backprop")
             for i in range(nEpochs):
                 # TODO: Refactor this to use net.retrain
                 preds = net.forward(xs)
