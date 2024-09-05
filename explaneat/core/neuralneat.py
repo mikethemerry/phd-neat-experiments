@@ -46,6 +46,9 @@ class NeuralNeat(nn.Module):
         self.config = config
         self.node_mapping = NodeMapping(genome, config)
         self.valid = self.is_valid()
+
+        self.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+
         if not self.valid:
             raise GenomeNotValidError()
         try:
@@ -323,11 +326,10 @@ class NeuralNeat(nn.Module):
         self.weights = params["weights"]
         self.biases = params["biases"]
 
-    @staticmethod
-    def _tt(mat):
+    def _tt(self, mat):
         return torch.nn.Parameter(
             torch.tensor(mat, dtype=torch.float64), requires_grad=True
-        )
+        ).to(self.device))
 
     def forward(self, x):
         # print("running forward")
@@ -351,7 +353,7 @@ class NeuralNeat(nn.Module):
                 # print(self.outputs)
                 layer_input = torch.cat(
                     [self._outputs[ii] for ii in self.layer_inputs[layer_id]], dim=1
-                )
+                ).to(self.device)
             # handle skip layers
             if layer_type == LAYER_TYPE_OUTPUT:
                 # print("inputs")
@@ -363,7 +365,7 @@ class NeuralNeat(nn.Module):
                 try:
                     layer_input = torch.cat(
                         [self._outputs[ii] for ii in self.layer_inputs[layer_id]], dim=1
-                    )
+                    ).to(self.device)
                 except:
                     print(layer_type)
                     print(layer_id)
@@ -372,7 +374,7 @@ class NeuralNeat(nn.Module):
                     print(self.layers)
                     layer_input = torch.cat(
                         [self._outputs[ii] for ii in self.layer_inputs[layer_id]]
-                    )
+                    ).to(self.device)
 
             # print(layer_input)
             # print(self.weights[layer_id])
@@ -415,7 +417,7 @@ class NeuralNeat(nn.Module):
     def optimise(self, xs, ys, nEpochs=100):
         USE_CUDA = torch.cuda.is_available()
         # USE_CUDA = False
-        device = torch.device("cuda:0" if USE_CUDA else "cpu")
+        device = torch.device("cuda:1" if USE_CUDA else "cpu")
         if not type(xs) is torch.Tensor:
             xs = torch.tensor(xs).to(device)
         if not type(ys) is torch.Tensor:
@@ -840,9 +842,9 @@ class NodeMapping(object):
             for connection_id, target in self.connection_map.items():
                 # print("testing")
                 # print(connection_id, target)
-                self.layers[target[0]]["input_weights"][target[1]][
-                    target[2]
-                ] = self.genome.connections[connection_id].weight
+                self.layers[target[0]]["input_weights"][target[1]][target[2]] = (
+                    self.genome.connections[connection_id].weight
+                )
             layer["bias"] = np.zeros(layer["shape"][1])
             for node_id, node in layer["nodes"].items():
                 if node_id in self.genome.nodes:

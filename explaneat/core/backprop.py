@@ -15,7 +15,7 @@ import logging
 def tt(num):
     USE_CUDA = torch.cuda.is_available()
     # USE_CUDA = False
-    device = torch.device("cuda:0" if USE_CUDA else "cpu")
+    device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
     # if torch.cuda.is_available():
     # return nn.Parameter(torch.tensor([float(num)], requires_grad=True).cuda())
@@ -24,17 +24,17 @@ def tt(num):
 
 
 def neatSigmoid(num):
-    return torch.sigmoid(4.9*num)
+    return torch.sigmoid(4.9 * num)
 
 
-class NeatNetSparseDense():
+class NeatNetSparseDense:
     def __init__(self, genome, config, criterion=nn.BCELoss()):
         self.input_keys = self.config.genome_config.input_keys
         self.output_keys = self.config.genome_config.output_keys
 
         USE_CUDA = torch.cuda.is_available()
         # USE_CUDA = False
-        device = torch.device("cuda:0" if USE_CUDA else "cpu")
+        device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
     def forward(self, inputs):
         pass
@@ -52,13 +52,12 @@ class NeatNetSparseDense():
 
             output = self.forward(xs[inX])
             target = ys[inX].view(-1)
-            target = target.to('cpu').float()
+            target = target.to("cpu").float()
             losses.append(self.criterion(output.float(), target.float()))
-        return sum(losses)/len(losses)
+        return sum(losses) / len(losses)
 
     def updateGenomeWeights(self, genome):
-        """takes in GenomeClass object and replaces the genome weights in place
-        """
+        """takes in GenomeClass object and replaces the genome weights in place"""
         # for k in genome.connections:
         #     genome.connections[k].weight = float(self.connections[k][0])
         # for k in genome.nodes:
@@ -66,7 +65,7 @@ class NeatNetSparseDense():
         pass
 
 
-class NeatNet():
+class NeatNet:
     def __init__(self, genome, config, criterion=nn.BCELoss()):
         # super(NeatNet, self).__init__()
         self._modules = []
@@ -76,9 +75,7 @@ class NeatNet():
             k: tt(connection.weight) for k, connection in genome.connections.items()
         }
 
-        self.biases = {
-            k: tt(node.bias) for k, node in genome.nodes.items()
-        }
+        self.biases = {k: tt(node.bias) for k, node in genome.nodes.items()}
 
         self.params = []
         for k, v in self.connections.items():
@@ -114,16 +111,14 @@ class NeatNet():
 
         USE_CUDA = torch.cuda.is_available()
         # USE_CUDA = False
-        device = torch.device("cuda:0" if USE_CUDA else "cpu")
+        device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
         self.optimizer = optim.Adadelta(self.params, lr=1.5)
         self.criterion = criterion.to(device)
 
     def get_order_of_nodes(self):
         order_of_nodes = []
-        nodes_to_propagate = [
-            k for k in self.input_keys
-        ]
+        nodes_to_propagate = [k for k in self.input_keys]
         connOuts = copy.deepcopy(self.connections_by_output)
 
         while len(nodes_to_propagate) > 0:
@@ -155,10 +150,9 @@ class NeatNet():
 
         USE_CUDA = torch.cuda.is_available()
         # USE_CUDA = False
-        device = torch.device("cuda:0" if USE_CUDA else "cpu")
+        device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
-        vals = [
-        ]
+        vals = []
         # handler for if the output is not connected
         if node in self.connections_by_output:
             for connection in self.connections_by_output[node]:
@@ -167,12 +161,14 @@ class NeatNet():
                 if connection[0] in self.order_of_nodes:
                     if self.genome.connections[connection].enabled:
                         vals.append(
-                            self.nodeVals[connection[0]] * self.connections[connection])
+                            self.nodeVals[connection[0]] * self.connections[connection]
+                        )
 
-        vals.append(torch.tensor(
-            self.genome.nodes[node].bias, requires_grad=True).to(device))
+        vals.append(
+            torch.tensor(self.genome.nodes[node].bias, requires_grad=True).to(device)
+        )
         mySum = sum(vals)
-        return torch.sigmoid(5.0*mySum)
+        return torch.sigmoid(5.0 * mySum)
 
     def forward(self, inputs):
         next_steps = []
@@ -190,8 +186,11 @@ class NeatNet():
             self.nodeVals[node] = self.activateNode(node)
 
         # print(self.nodeVals)
-        output = torch.tensor([self.nodeVals[k] for k in self.output_keys],
-                              requires_grad=True, dtype=torch.float).view(-1, len(self.output_keys))
+        output = torch.tensor(
+            [self.nodeVals[k] for k in self.output_keys],
+            requires_grad=True,
+            dtype=torch.float,
+        ).view(-1, len(self.output_keys))
         if len(self.output_keys) == 1:
             output = output.view(1)
         # print(output)
@@ -202,7 +201,7 @@ class NeatNet():
 
         USE_CUDA = torch.cuda.is_available()
         # USE_CUDA = False
-        device = torch.device("cuda:0" if USE_CUDA else "cpu")
+        device = torch.device("cuda:1" if USE_CUDA else "cpu")
         if not type(xs) is torch.Tensor:
             xs = torch.tensor(xs).to(device)
         if not type(ys) is torch.Tensor:
@@ -211,14 +210,15 @@ class NeatNet():
         # print('going to train for %s epochs' % nEpochs)
         for epoch in range(nEpochs):
             for inX in range(len(xs)):
-                self.optimizer.zero_grad()   # zero the gradient buffers
+                self.optimizer.zero_grad()  # zero the gradient buffers
 
                 output = self.forward(xs[inX])
                 target = ys[inX].view(-1)
-                target = target.to('cpu')
+                target = target.to("cpu")
                 loss = self.criterion(output.float(), target.float())
                 loss.backward()
                 self.optimizer.step()
+
     optimize = optimise
 
     def meanLoss(self, xs, ys):
@@ -240,14 +240,13 @@ class NeatNet():
             # print(output.size())
             # print(target.size())
             # print(self.criterion)
-            target = target.to('cpu').float()
-#             print(target.device)
+            target = target.to("cpu").float()
+            #             print(target.device)
             losses.append(self.criterion(output.float(), target.float()))
-        return sum(losses)/len(losses)
+        return sum(losses) / len(losses)
 
     def updateGenomeWeights(self, genome):
-        """takes in GenomeClass object and replaces the genome weights in place
-        """
+        """takes in GenomeClass object and replaces the genome weights in place"""
         for k in genome.connections:
             genome.connections[k].weight = float(self.connections[k][0])
         for k in genome.nodes:
@@ -277,54 +276,71 @@ class BackpropReporter(object):
         self.bestFitnesses.append(best_genome.fitness)
         try:
             self.firstDerivatives.append(
-                self.bestFitnesses[self.generation] - self.bestFitnesses[self.generation - 1])
+                self.bestFitnesses[self.generation]
+                - self.bestFitnesses[self.generation - 1]
+            )
         except IndexError:
             self.firstDerivatives.append(self.bestFitnesses[self.generation])
         try:
             self.secondDerivatives.append(
-                self.firstDerivatives[self.generation] - self.firstDerivatives[self.generation - 1])
+                self.firstDerivatives[self.generation]
+                - self.firstDerivatives[self.generation - 1]
+            )
         except IndexError:
-            self.secondDerivatives.append(
-                self.firstDerivatives[self.generation])
+            self.secondDerivatives.append(self.firstDerivatives[self.generation])
         if self.secondDerivatives[self.generation] > 0.001:
             self.improvedTopologies[self.generation] = {
-                'genome': copy.deepcopy(best_genome),
-                'fitness': best_genome.fitness,
-                'firstDerivatives': copy.deepcopy(self.firstDerivatives),
-                'secondDerivatives': copy.deepcopy(self.secondDerivatives)}
+                "genome": copy.deepcopy(best_genome),
+                "fitness": best_genome.fitness,
+                "firstDerivatives": copy.deepcopy(self.firstDerivatives),
+                "secondDerivatives": copy.deepcopy(self.secondDerivatives),
+            }
             if self.showSpeciesImprovements:
                 print("\n\n SPECIES TOPOLOGY IMPROVEMENT\n\n")
                 print(self.improvedTopologies[self.generation])
-                print(self.improvedTopologies[self.generation]['genome'])
+                print(self.improvedTopologies[self.generation]["genome"])
                 print("Nodes")
-                for n in self.improvedTopologies[self.generation]['genome'].nodes:
-                    print("%s    %s" % (
-                        n, self.improvedTopologies[self.generation]['genome'].nodes[n]))
+                for n in self.improvedTopologies[self.generation]["genome"].nodes:
+                    print(
+                        "%s    %s"
+                        % (
+                            n,
+                            self.improvedTopologies[self.generation]["genome"].nodes[n],
+                        )
+                    )
                 print("Connections")
-                for c in self.improvedTopologies[self.generation]['genome'].connections:
-                    print("%s    %s" % (
-                        c, self.improvedTopologies[self.generation]['genome'].connections[c]))
+                for c in self.improvedTopologies[self.generation]["genome"].connections:
+                    print(
+                        "%s    %s"
+                        % (
+                            c,
+                            self.improvedTopologies[self.generation][
+                                "genome"
+                            ].connections[c],
+                        )
+                    )
 
-    # def end_generation(self, config, population, species):
-        print('ending generation %s'.format(self.generation))
+        # def end_generation(self, config, population, species):
+        print("ending generation %s".format(self.generation))
 
         for p in population:
             if not p in self.ancestry:
                 self.ancestry[p] = {
-                    'key': p,
-                    'genome': copy.deepcopy(population[p]),
-                    'generationBorn': self.generation,
-                    'species': {},
-                    'fitness': {}
+                    "key": p,
+                    "genome": copy.deepcopy(population[p]),
+                    "generationBorn": self.generation,
+                    "species": {},
+                    "fitness": {},
                 }
-            self.ancestry[p]['fitness'][self.generation] = population[p].fitness
+            self.ancestry[p]["fitness"][self.generation] = population[p].fitness
             if population[p].fitness is None:
-                print('no fitness for organism %s in generation %s' %
-                      (p, self.generation))
+                print(
+                    "no fitness for organism %s in generation %s" % (p, self.generation)
+                )
                 print(population[p])
         for s in species.species:
             for p in species.species[s].members:
-                self.ancestry[p]['species'][self.generation] = s
+                self.ancestry[p]["species"][self.generation] = s
 
     def end_generation(self, config, population, species):
         pass
@@ -347,22 +363,20 @@ class BackpropReporter(object):
         final_generation = self.generation
 
         gen = final_generation
-        previous_generation = [
-            species_key
-        ]
+        previous_generation = [species_key]
         current_generation = []
 
         species_ancestry = {}
 
         while gen >= 0:
-            print('gen is %s' % gen)
-            print('previous generation is %s' % previous_generation)
+            print("gen is %s" % gen)
+            print("previous generation is %s" % previous_generation)
             for sKey in previous_generation:
-                print('skey is %s' % sKey)
-                if self.ancestry[sKey]['generationBorn'] < gen:
+                print("skey is %s" % sKey)
+                if self.ancestry[sKey]["generationBorn"] < gen:
                     # Still was born
                     current_generation.append(sKey)
-                elif self.ancestry[sKey]['generationBorn'] == gen:
+                elif self.ancestry[sKey]["generationBorn"] == gen:
                     current_generation.append(sKey)
                     for parentKey in ancestors[sKey]:
                         current_generation.append(parentKey)
@@ -375,18 +389,18 @@ class BackpropReporter(object):
             species_ancestry[gen] = {}
             for k in current_generation:
                 try:
-                    species_ancestry[gen][k] = self.ancestry[k]['fitness'][gen]
+                    species_ancestry[gen][k] = self.ancestry[k]["fitness"][gen]
                 except KeyError:
-                    print('issue with k is %s and gen of %s' % (k, gen))
+                    print("issue with k is %s and gen of %s" % (k, gen))
                     # pass
             # species_ancestry[gen] = {
-                # k: self.ancestry[k]['fitness'][gen] for k in current_generation
+            # k: self.ancestry[k]['fitness'][gen] for k in current_generation
             # }
 
             previous_generation = current_generation
             current_generation = []
             gen += -1
-        print('have calculated the ancestry')
+        print("have calculated the ancestry")
         return species_ancestry
 
 
@@ -406,10 +420,9 @@ class Net(torch.nn.Module):
         x1 = x[0]
         x2 = x[1]
 
-        h1 = torch.sigmoid(4.9*(x1*self.g1 + x2*self.g2 + self.b1))
+        h1 = torch.sigmoid(4.9 * (x1 * self.g1 + x2 * self.g2 + self.b1))
 
-        o1 = torch.sigmoid(
-            4.9*(x1*self.g3 + h1*self.g4 + x2*self.g5 + self.b2))
+        o1 = torch.sigmoid(4.9 * (x1 * self.g3 + h1 * self.g4 + x2 * self.g5 + self.b2))
 
         return o1
 
@@ -436,11 +449,10 @@ def xor(a, b):
 def create_n_points(n, size, min=0.0, max=1.0):
     data = []
     for _ in range(n):
-        data.append(tuple([
-            random.uniform(min, max) for ii in range(size)
-        ]))
+        data.append(tuple([random.uniform(min, max) for ii in range(size)]))
 
     return data
+
 
 # correct solution:
 
@@ -452,4 +464,4 @@ def softmax(x):
 
 
 def overUnder(val, threshold):
-    return 1. if val > threshold else 0
+    return 1.0 if val > threshold else 0
