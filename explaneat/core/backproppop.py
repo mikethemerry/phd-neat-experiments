@@ -163,9 +163,9 @@ class BackpropPopulation(Population):
             end_time = time.time()
             avg_time_per_epoch = (end_time - start_time) / nEpochs
             avg_times_per_epoch.append(avg_time_per_epoch)
-            self.logger.info(
-                f"Average time per epoch: {avg_time_per_epoch:.4f} seconds"
-            )
+            # self.logger.info(
+            #     f"Average time per epoch: {avg_time_per_epoch:.4f} seconds"
+            # )
             # losses[-10:]
             postBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
             lossDiff = postBPLoss - preBPLoss
