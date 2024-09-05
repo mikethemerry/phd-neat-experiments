@@ -328,8 +328,8 @@ class NeuralNeat(nn.Module):
 
     def _tt(self, mat):
         return torch.nn.Parameter(
-            torch.tensor(mat, dtype=torch.float64), requires_grad=True
-        ).to(self.device))
+            torch.tensor(mat, dtype=torch.float64).to(self.device), requires_grad=True
+        )
 
     def forward(self, x):
         # print("running forward")
