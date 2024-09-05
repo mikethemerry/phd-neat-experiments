@@ -58,7 +58,7 @@ class BackpropPopulation(Population):
         self.config = config
 
         USE_CUDA = True and torch.cuda.is_available()
-        USE_CUDA = False
+        # USE_CUDA = False
         self.device = torch.device("cuda:1" if USE_CUDA else "cpu")
         print(f"Using device: {self.device}")
 
