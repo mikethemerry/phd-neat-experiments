@@ -46,8 +46,10 @@ class NeuralNeat(nn.Module):
         self.config = config
         self.node_mapping = NodeMapping(genome, config)
         self.valid = self.is_valid()
+        USE_CUDA = False and torch.cuda.is_available()
+        # USE_CUDA = False
 
-        self.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
         if not self.valid:
             raise GenomeNotValidError()
@@ -415,7 +417,7 @@ class NeuralNeat(nn.Module):
                     # return self._outputs[layer_id]
 
     def optimise(self, xs, ys, nEpochs=100):
-        USE_CUDA = torch.cuda.is_available()
+        USE_CUDA = False and torch.cuda.is_available()
         # USE_CUDA = False
         device = torch.device("cuda:1" if USE_CUDA else "cpu")
         if not type(xs) is torch.Tensor:

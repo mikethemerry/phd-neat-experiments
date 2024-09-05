@@ -13,7 +13,7 @@ import logging
 
 
 def tt(num):
-    USE_CUDA = torch.cuda.is_available()
+    USE_CUDA = False and torch.cuda.is_available()
     # USE_CUDA = False
     device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
@@ -32,7 +32,7 @@ class NeatNetSparseDense:
         self.input_keys = self.config.genome_config.input_keys
         self.output_keys = self.config.genome_config.output_keys
 
-        USE_CUDA = torch.cuda.is_available()
+        USE_CUDA = False and torch.cuda.is_available()
         # USE_CUDA = False
         device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
@@ -109,7 +109,7 @@ class NeatNet:
             self.connections_by_output[k[1]][k] = c
         self.order_of_nodes = self.get_order_of_nodes()
 
-        USE_CUDA = torch.cuda.is_available()
+        USE_CUDA = False and torch.cuda.is_available()
         # USE_CUDA = False
         device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
@@ -148,7 +148,7 @@ class NeatNet:
 
     def activateNode(self, node):
 
-        USE_CUDA = torch.cuda.is_available()
+        USE_CUDA = False and torch.cuda.is_available()
         # USE_CUDA = False
         device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
@@ -199,7 +199,7 @@ class NeatNet:
 
     def optimise(self, xs, ys, nEpochs=100):
 
-        USE_CUDA = torch.cuda.is_available()
+        USE_CUDA = False and torch.cuda.is_available()
         # USE_CUDA = False
         device = torch.device("cuda:1" if USE_CUDA else "cpu")
         if not type(xs) is torch.Tensor:

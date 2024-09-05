@@ -57,8 +57,8 @@ class BackpropPopulation(Population):
         self.reporters = ReporterSet()
         self.config = config
 
-        USE_CUDA = torch.cuda.is_available()
-        # USE_CUDA = False
+        USE_CUDA = False and torch.cuda.is_available()
+        USE_CUDA = False
         self.device = torch.device("cuda:1" if USE_CUDA else "cpu")
         print(f"Using device: {self.device}")
 

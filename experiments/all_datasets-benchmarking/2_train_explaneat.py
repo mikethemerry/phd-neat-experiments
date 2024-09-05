@@ -60,7 +60,7 @@ experiment = GenericExperiment(
 )
 logger = experiment.logger
 
-USE_CUDA = torch.cuda.is_available()
+USE_CUDA = False and torch.cuda.is_available()
 device = torch.device("cuda:1" if USE_CUDA else "cpu")
 
 
