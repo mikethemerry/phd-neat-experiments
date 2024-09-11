@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 # from explaneat.core.neuralneat import NeuralNeat as nneat
 from explaneat.core.backprop import NeatNet as naiveNeat
 from explaneat.core import backprop
-from explaneat.core.backproppop import BackpropPopulation
+from explaneat.core.backproppop_naive import BackpropPopulation
 from explaneat.visualization import visualize
 from explaneat.core.experiment import ExperimentReporter
 from explaneat.core.utility import one_hot_encode
@@ -169,6 +169,18 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
     )
 
     end_time = datetime.datetime.now()
+
+    experiment.results_database.add_result(
+        Result(
+            p.backprop_times,
+            "explaneat_naive_backprop_times",
+            experiment.config["experiment"]["name"],
+            args.data_name,
+            experiment.experiment_sha,
+            iteration_no * 100,
+            {"iteration": iteration_no * 100},
+        )
+    )
 
     experiment.results_database.add_result(
         Result(

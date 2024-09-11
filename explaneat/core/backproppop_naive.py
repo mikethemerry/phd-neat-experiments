@@ -13,10 +13,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from explaneat.core.neuralneat import NeuralNeat as nneat
+# from explaneat.core.neuralneat import NeuralNeat as nneat
 
 
-from explaneat.core.backprop import NeatNet
+from explaneat.core.backprop import NeatNet as nneat
 
 from explaneat.core.errors import GenomeNotValidError
 
@@ -137,7 +137,7 @@ class BackpropPopulation(Population):
                 postLosses.append(postBPLoss)
                 continue
 
-            optimizer = optim.Adadelta(net.parameters(), lr=1.5)
+            optimizer = optim.Adadelta(net.params, lr=1.5)
 
             optimizer.zero_grad()
             losses = []
@@ -165,7 +165,6 @@ class BackpropPopulation(Population):
             end_time = time.time()
             avg_time_per_epoch = (end_time - start_time) / nEpochs
             avg_times_per_epoch.append(avg_time_per_epoch)
-
             self.backprop_times.append(avg_time_per_epoch)
             # self.logger.info(
             #     f"Average time per epoch: {avg_time_per_epoch:.4f} seconds"
