@@ -184,6 +184,18 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
 
     experiment.results_database.add_result(
         Result(
+            p.generation_details,
+            "explaneat_naive_generation_details",
+            experiment.config["experiment"]["name"],
+            args.data_name,
+            experiment.experiment_sha,
+            iteration_no * 100,
+            {"iteration": iteration_no * 100},
+        )
+    )
+
+    experiment.results_database.add_result(
+        Result(
             (end_time - start_time).seconds,
             "explaneat_naive_train_time",
             experiment.config["experiment"]["name"],

@@ -6,6 +6,7 @@ import sys
 import time
 
 
+from explaneat.core.neuralneat import NodeMapping
 from neat.math_util import mean, stdev
 
 import torch
@@ -78,6 +79,7 @@ class BackpropPopulation(Population):
         self.nEpochs = nEpochs
 
         self.backprop_times = []
+        self.generation_details = []
 
         stagnation = config.stagnation_type(config.stagnation_config, self.reporters)
         self.reproduction = config.reproduction_type(
@@ -120,6 +122,9 @@ class BackpropPopulation(Population):
         postLosses = []
         improvements = []
         avg_times_per_epoch = []
+        size_per_genome = []
+        depth_per_genome = []
+        width_per_genome = []
         for k, genome in self.population.items():
 
             ## Start neat load up
@@ -166,6 +171,12 @@ class BackpropPopulation(Population):
             avg_time_per_epoch = (end_time - start_time) / nEpochs
             avg_times_per_epoch.append(avg_time_per_epoch)
             self.backprop_times.append(avg_time_per_epoch)
+
+            genome_map = NodeMapping(net.genome, self.config)
+
+            size_per_genome.append(len(net.genome.nodes))
+            depth_per_genome.append(genome_map.depth)
+            width_per_genome.append(genome_map.width)
             # self.logger.info(
             #     f"Average time per epoch: {avg_time_per_epoch:.4f} seconds"
             # )
@@ -187,6 +198,19 @@ class BackpropPopulation(Population):
             # for ix in net.genome.connections:
             # self.logger.info(net.genome.connections[ix])
             postLosses.append(postBPLoss.item())
+
+        generation_detail = {
+            "mean_size_per_genome": mean(size_per_genome),
+            "mean_depth_per_genome": mean(depth_per_genome),
+            "mean_width_per_genome": mean(width_per_genome),
+            "mean_time_per_epoch": mean(avg_times_per_epoch),
+            "total_time_per_backprop": sum(avg_times_per_epoch) * nEpochs,
+            "mean_improvement": mean(improvements),
+            "best_improvement": min(improvements),
+            "best_loss": min(postLosses),
+        }
+
+        self.generation_details.append(generation_detail)
 
         self.logger.info("mean improvement: %s" % mean(improvements))
         self.logger.info("best improvement: %s" % min(improvements))

@@ -728,6 +728,22 @@ class NodeMapping(object):
             node_id: node for node_id, node in node_tracker.items() if node["is_valid"]
         }
 
+    @property
+    def width(self):
+        layer_counts = {}
+        for _, node in self.valid_node_mapping.items():
+            if not node["depth"] in layer_counts:
+                layer_counts[node["depth"]] = 0
+            layer_counts[node["depth"]] += 1
+        return max(layer_counts.values()) if layer_counts else 0
+
+    @property
+    def depth(self):
+        max_depth = 0
+        for _, node in self.valid_node_mapping.items():
+            max_depth = max(max_depth, node["depth"])
+        return max_depth
+
     def _create_layer_mapping(self):
         self.layers = {}
         node_map = self.valid_node_mapping
