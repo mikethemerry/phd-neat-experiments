@@ -171,8 +171,8 @@ class BackpropPopulation(Population):
             avg_times_per_epoch.append(avg_time_per_epoch)
 
             size_per_genome.append(len(net.genome.nodes))
-            depth_per_genome.append(net.depth())
-            width_per_genome.append(net.width())
+            depth_per_genome.append(net.node_mapping.depth())
+            width_per_genome.append(net.node_mapping.width())
 
             self.backprop_times.append(avg_time_per_epoch)
             # self.logger.info(
