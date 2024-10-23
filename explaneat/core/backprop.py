@@ -177,6 +177,7 @@ class NeatNet:
 
         print(f"inputs dtype is {inputs.dtype}")
         print(f"n inputs is {len(inputs)}")
+        print(f"size of an input is {inputs[0].size()}")
         print(f"length of input keys is {len(self.input_keys)}")
 
         self.nodeVals = {}
