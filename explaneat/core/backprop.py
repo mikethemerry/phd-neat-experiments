@@ -175,6 +175,10 @@ class NeatNet:
 
         # h1 = torch.sigmoid(4.9*(x1*self.g1 + x2*self.g2 + self.b1))
 
+        print(f"inputs dtype is {inputs.dtype}")
+        print(f"n inputs is {len(inputs)}")
+        print(f"length of input keys is {len(self.input_keys)}")
+
         self.nodeVals = {}
         for k, inputVal in enumerate(inputs):
             self.nodeVals[self.input_keys[k]] = inputVal
