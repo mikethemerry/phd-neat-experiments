@@ -156,7 +156,8 @@ for iteration_no in range(experiment.config["model"]["propneat"]["n_iterations"]
     )
 
     config = deepcopy(base_config)
-
+    base_config.pop_size = experiment.config["model"]["propneat"]["population_size"]
+    base_config.genome_config.num_inputs = X_test_tt.shape[1]
     # saveLocation = saveLocationTemplate.format(
     # experiment.config['model']['random_forest'], iteration_no)
 
