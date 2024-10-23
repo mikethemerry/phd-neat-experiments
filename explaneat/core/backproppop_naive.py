@@ -183,11 +183,11 @@ class BackpropPopulation(Population):
             #     f"Average time per epoch: {avg_time_per_epoch:.4f} seconds"
             # )
             # losses[-10:]
-            postBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
-            lossDiff = postBPLoss - preBPLoss
+            # postBPLoss = F.mse_loss(net.forward(xs), ys).sqrt()
+            # lossDiff = postBPLoss - preBPLoss
 
-            losses.append((preBPLoss, postBPLoss, lossDiff))
-            improvements.append(lossDiff.item())
+            # losses.append((preBPLoss, postBPLoss, lossDiff))
+            # improvements.append(lossDiff.item())
             # self.logger.info(net.weights)
             # self.logger.info("PRE")
             # for ix in genome.connections:
