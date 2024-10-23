@@ -150,7 +150,7 @@ class BackpropPopulation(Population):
             # try:
             # self.logger.info(f"xs dtype is {xs.dtype}")
             # self.logger.info(f"xs is {xs}")
-            loss_preds = net.forward(xs)
+            # loss_preds = net.forward(xs)
             # self.logger.info(f"loss_preds is {loss_preds}")
             # self.logger.info(f"loss_preds dtype is {loss_preds.dtype}")
             # self.logger.info(f"ys dtype is {ys.dtype}")
@@ -159,14 +159,16 @@ class BackpropPopulation(Population):
             # net.help_me_debug()
             # sys.exit("Error in loss for backprop")
             start_time = time.time()
-            for i in range(nEpochs):
-                # TODO: Refactor this to use net.retrain
-                preds = net.forward(xs)
-                loss = F.mse_loss(preds, ys).sqrt()
-                loss.backward()
-                optimizer.step()
-                optimizer.zero_grad()
-                losses.append(loss)
+
+            net.optimise(xs, ys, nEpochs=nEpochs)
+            # for i in range(nEpochs):
+            #     # TODO: Refactor this to use net.retrain
+            #     preds = net.forward(xs)
+            #     loss = F.mse_loss(preds, ys).sqrt()
+            #     loss.backward()
+            #     optimizer.step()
+            #     optimizer.zero_grad()
+            #     losses.append(loss)
             end_time = time.time()
             avg_time_per_epoch = (end_time - start_time) / nEpochs
             avg_times_per_epoch.append(avg_time_per_epoch)
